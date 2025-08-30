@@ -28,7 +28,8 @@ jobs:
             libavformat-dev \
             libavutil-dev \
             libswscale-dev \
-            libasound2-dev
+            libasound2-dev \
+            libdbus-1-dev
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -39,7 +40,7 @@ jobs:
         run: cargo publish
 
       - name: Build binaries for Linux
-        run: cargo build --release --bins --target x86_64-unknown-linux-gnu
+        run: cargo build --release --bins --target x8-64-unknown-linux-gnu
 
       - name: Package binaries for release
         shell: bash
