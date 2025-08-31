@@ -38,11 +38,11 @@ impl Settings {
     pub async fn new() -> Result<Self> {
         let (default_source, default_sink) = get_default_audio_devices().await.unwrap_or_default();
         Ok(Self {
-            api_url: String::from("http://127.0.0.1:8080"),
+            api_url: String::from("https://wayclip.com"),
             auth_token: None,
             mic_node_name: default_source.unwrap_or_default(),
             bg_node_name: default_sink.unwrap_or_default(),
-            clip_name_formatting: String::from("%Y-%m-%d_%H-%M-%S"),
+            clip_name_formatting: String::from("wayclip_%Y-%m-%d_%H-%M-%S"),
             clip_length_s: 120,
             clip_resolution: String::from("1920x1080"),
             clip_fps: 60,

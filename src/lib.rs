@@ -53,7 +53,7 @@ pub mod models;
 pub mod ring;
 pub mod settings;
 
-pub const WAYCLIP_TRIGGER_PATH: &str = "/home/kony/Documents/GitHub/wayclip/target/debug/trigger";
+pub const WAYCLIP_TRIGGER_PATH: &str = "/usr/bin/wayclip-trigger";
 
 #[derive(Deserialize)]
 pub struct PullClipsArgs {
