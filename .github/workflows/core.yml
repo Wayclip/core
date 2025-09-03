@@ -44,6 +44,9 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish
 
+      - name: Update dependencies
+        run: cargo update
+
       - name: Build binaries for Linux
         run: cargo build --release --bins --target x86_64-unknown-linux-gnu
 
