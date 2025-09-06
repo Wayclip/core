@@ -1,4 +1,4 @@
-name: Wayclip Core Cargo
+name: Wayclip CI & Release
 
 on:
   push:
@@ -7,28 +7,28 @@ on:
 
 jobs:
   publish-and-release:
-    name: Publish Crate and Release Linux Binaries
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Publish to crates.io
+      - name: Install System Dependencies
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libglib2.0-dev
+
+      - name: Publish Crate
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish
 
-      - name: Build Linux Binaries via Docker
+      - name: Build Binaries in Docker
         run: |
           docker build -t wayclip-builder .
           mkdir -p artifacts
           docker run --rm -v "${GITHUB_WORKSPACE}/artifacts":/out wayclip-builder
 
-      - name: Package binaries for release
-        shell: bash
+      - name: Package Binaries for Release
         run: |
           RELEASE_TAG=${GITHUB_REF#refs/tags/}
           tar -czvf "wayclip-${RELEASE_TAG}-x86_64-unknown-linux-gnu.tar.gz" -C artifacts .
