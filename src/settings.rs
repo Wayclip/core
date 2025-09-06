@@ -6,6 +6,7 @@ use crate::PathBuf;
 use crate::Value;
 use anyhow::{Context, Result};
 use std::collections::HashSet;
+use std::path::Path;
 use tokio::fs;
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
@@ -32,11 +33,19 @@ pub struct Settings {
     pub bg_volume: u8,
     pub include_mic_audio: bool,
     pub include_bg_audio: bool,
+    pub trigger_path: String,
 }
 
 impl Settings {
     pub async fn new() -> Result<Self> {
         let (default_source, default_sink) = get_default_audio_devices().await.unwrap_or_default();
+
+        let trigger_path = if Path::new("/home/kony/.local/bin/wayclip-trigger").exists() {
+            "/home/kony/.local/bin/wayclip-trigger".to_string()
+        } else {
+            "/usr/bin/wayclip-trigger".to_string()
+        };
+
         Ok(Self {
             api_url: String::from("https://wayclip.com"),
             auth_token: None,
@@ -60,6 +69,7 @@ impl Settings {
             bg_volume: 75,
             include_mic_audio: true,
             include_bg_audio: true,
+            trigger_path,
         })
     }
 
@@ -72,7 +82,6 @@ impl Settings {
     }
 
     async fn create_and_save_new() -> Result<Self> {
-        // log!([DEBUG] => "Creating and saving new default settings.");
         let settings = Self::new().await?;
         settings
             .save()
@@ -89,7 +98,6 @@ impl Settings {
             return Self::create_and_save_new().await;
         }
 
-        // log!([DEBUG] => "Found settings file at: {:?}", path);
         let data = fs::read_to_string(&path)
             .await
             .context("Failed to read existing settings file")?;
@@ -118,12 +126,9 @@ impl Settings {
         let default_keys: HashSet<_> = default_map.keys().cloned().collect();
 
         if saved_keys == default_keys {
-            //     log!([DEBUG] => "Settings file is up-to-date. Loading directly.");
             return serde_json::from_value(saved_value)
                 .context("Failed to deserialize up-to-date settings");
         }
-
-        // log!([DEBUG] => "Settings file is outdated or has extra keys. Merging with defaults.");
 
         let default_map_mut = default_value.as_object_mut().unwrap();
 
@@ -162,73 +167,31 @@ impl Settings {
         let mut settings = Self::load().await.map_err(|e| e.to_string())?;
 
         match key {
-            "api_url" => {
-                settings.api_url = Self::get_str(&value)?;
-            }
-            "auth_token" => {
-                settings.auth_token = Some(Self::get_str(&value)?);
-            }
-            "clip_name_formatting" => {
-                settings.clip_name_formatting = Self::get_str(&value)?;
-            }
-            "clip_length_s" => {
-                settings.clip_length_s = Self::get_u64(&value)?;
-            }
-            "clip_resolution" => {
-                settings.clip_resolution = Self::get_str(&value)?;
-            }
-            "clip_fps" => {
-                settings.clip_fps = Self::get_u16(&value)?;
-            }
-            "include_bg_audio" => {
-                settings.include_bg_audio = Self::get_bool(&value)?;
-            }
-            "include_mic_audio" => {
-                settings.include_mic_audio = Self::get_bool(&value)?;
-            }
-            "video_bitrate" => {
-                settings.video_bitrate = Self::get_u16(&value)?;
-            }
-            "video_codec" => {
-                settings.video_codec = Self::get_str(&value)?;
-            }
-            "audio_codec" => {
-                settings.audio_codec = Self::get_str(&value)?;
-            }
+            "api_url" => settings.api_url = Self::get_str(&value)?,
+            "auth_token" => settings.auth_token = Some(Self::get_str(&value)?),
+            "clip_name_formatting" => settings.clip_name_formatting = Self::get_str(&value)?,
+            "clip_length_s" => settings.clip_length_s = Self::get_u64(&value)?,
+            "clip_resolution" => settings.clip_resolution = Self::get_str(&value)?,
+            "clip_fps" => settings.clip_fps = Self::get_u16(&value)?,
+            "include_bg_audio" => settings.include_bg_audio = Self::get_bool(&value)?,
+            "include_mic_audio" => settings.include_mic_audio = Self::get_bool(&value)?,
+            "video_bitrate" => settings.video_bitrate = Self::get_u16(&value)?,
+            "video_codec" => settings.video_codec = Self::get_str(&value)?,
+            "audio_codec" => settings.audio_codec = Self::get_str(&value)?,
             "save_path_from_home_string" => {
-                settings.save_path_from_home_string = Self::get_str_valid_path(&value)?;
+                settings.save_path_from_home_string = Self::get_str_valid_path(&value)?
             }
-            "save_shortcut" => {
-                settings.save_shortcut = Self::get_shortcut(&value)?;
-            }
-            "open_gui_shortcut" => {
-                settings.open_gui_shortcut = Self::get_shortcut(&value)?;
-            }
-            "toggle_notifications" => {
-                settings.toggle_notifications = Self::get_bool(&value)?;
-            }
-            "daemon_pid_path" => {
-                settings.daemon_pid_path = Self::get_str(&value)?;
-            }
-            "gui_socket_path" => {
-                settings.gui_socket_path = Self::get_str(&value)?;
-            }
-            "daemon_socket_path" => {
-                settings.daemon_socket_path = Self::get_str(&value)?;
-            }
-            "mic_node_name" => {
-                settings.mic_node_name = Self::get_str(&value)?;
-            }
-            "bg_node_name" => {
-                settings.bg_node_name = Self::get_str(&value)?;
-            }
-            "mic_volume" => {
-                settings.mic_volume = Self::get_u8(&value)?;
-            }
-            "bg_volume" => {
-                settings.bg_volume = Self::get_u8(&value)?;
-            }
-
+            "save_shortcut" => settings.save_shortcut = Self::get_shortcut(&value)?,
+            "open_gui_shortcut" => settings.open_gui_shortcut = Self::get_shortcut(&value)?,
+            "toggle_notifications" => settings.toggle_notifications = Self::get_bool(&value)?,
+            "daemon_pid_path" => settings.daemon_pid_path = Self::get_str(&value)?,
+            "gui_socket_path" => settings.gui_socket_path = Self::get_str(&value)?,
+            "daemon_socket_path" => settings.daemon_socket_path = Self::get_str(&value)?,
+            "mic_node_name" => settings.mic_node_name = Self::get_str(&value)?,
+            "bg_node_name" => settings.bg_node_name = Self::get_str(&value)?,
+            "mic_volume" => settings.mic_volume = Self::get_u8(&value)?,
+            "bg_volume" => settings.bg_volume = Self::get_u8(&value)?,
+            "trigger_path" => settings.trigger_path = Self::get_str(&value)?,
             _ => return Err("Invalid key has been used!".into()),
         }
 
@@ -272,7 +235,6 @@ impl Settings {
         let raw = value
             .as_str()
             .ok_or_else(|| "expected a string for shortcut".to_string())?;
-
         let cleaned = raw.replace(' ', "");
         let parts: Vec<&str> = cleaned.split('+').collect();
 
@@ -309,13 +271,11 @@ impl Settings {
         let rel_path = value
             .as_str()
             .ok_or_else(|| "expected a string for path".to_string())?;
-
         let clean_path = rel_path.trim_start_matches('/');
         if clean_path.starts_with("home/") {
             return Ok(clean_path.to_string());
         }
         let full_path = Self::home_path().join(clean_path);
-
         Ok(full_path.to_string_lossy().into_owned())
     }
 
