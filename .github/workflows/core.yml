@@ -1,4 +1,4 @@
-name: Wayclip CI & Release Workflow
+name: Wayclip Core Cargo
 
 on:
   push:
@@ -7,19 +7,20 @@ on:
 
 jobs:
   publish-and-release:
+    name: Publish Crate and Release Linux Binaries
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Install System Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             pkg-config \
-            libglib2.0-dev \
+            build-essential \
             libssl-dev \
             libwayland-dev \
             libpipewire-0.3-dev \
@@ -33,26 +34,28 @@ jobs:
             libavdevice-dev \
             libswresample-dev \
             libasound2-dev \
-            libdbus-1-dev \
-            clang \
-            git
+            libdbus-1-dev
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Publish Crate
+      - name: Publish to crates.io
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish
 
-      - name: Build Binaries in Docker
-        run: |
-          docker build -t wayclip-builder .
-          mkdir -p artifacts
-          docker run --rm -v "${GITHUB_WORKSPACE}/artifacts":/out wayclip-builder
+      - name: Build binaries for Linux
+        run: cargo build --release --bins --target x86_64-unknown-linux-gnu
 
-      - name: Package Binaries for Release
+      - name: Package binaries for release
+        shell: bash
         run: |
           RELEASE_TAG=${GITHUB_REF#refs/tags/}
-          tar -czvf "wayclip-${RELEASE_TAG}-x86_64-unknown-linux-gnu.tar.gz" -C artifacts .
-
+          TARGET_DIR="target/x86_64-unknown-linux-gnu/release"
+          ARTIFACT_DIR="wayclip-binaries"
+          mkdir -p $ARTIFACT_DIR
+          cp "$TARGET_DIR/daemon" "$ARTIFACT_DIR/"
+          cp "$TARGET_DIR/trigger" "$ARTIFACT_DIR/"
+          tar -czvf "wayclip-${RELEASE_TAG}-x86_64-unknown-linux-gnu.tar.gz" "$ARTIFACT_DIR"
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
