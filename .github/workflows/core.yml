@@ -1,4 +1,4 @@
-name: Wayclip CI & Release
+name: Wayclip CI & Release Workflow
 
 on:
   push:
@@ -15,7 +15,27 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install System Dependencies
-        run: sudo apt-get update && sudo apt-get install -y pkg-config libglib2.0-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libglib2.0-dev \
+            libssl-dev \
+            libwayland-dev \
+            libpipewire-0.3-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
+            libavcodec-dev \
+            libavformat-dev \
+            libavutil-dev \
+            libswscale-dev \
+            libavfilter-dev \
+            libavdevice-dev \
+            libswresample-dev \
+            libasound2-dev \
+            libdbus-1-dev \
+            clang \
+            git
 
       - name: Publish Crate
         env:
