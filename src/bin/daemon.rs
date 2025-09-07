@@ -27,6 +27,25 @@ use wayclip_core::{
 
 const SAVE_COOLDOWN: Duration = Duration::from_secs(2);
 
+enum EncoderType {
+    Nvidia,
+    Vaapi,
+    Software,
+}
+
+fn detect_encoder(logger: &Logger) -> (EncoderType, &'static str) {
+    if gst::ElementFactory::find("nvh264enc").is_some() {
+        log_to!(logger, Info, [GST] => "NVIDIA NVENC detected. Using nvh264enc.");
+        (EncoderType::Nvidia, "nvh264enc")
+    } else if gst::ElementFactory::find("vaapih264enc").is_some() {
+        log_to!(logger, Info, [GST] => "VA-API detected. Using vaapih264enc for AMD/Intel GPU.");
+        (EncoderType::Vaapi, "vaapih264enc")
+    } else {
+        log_to!(logger, Warn, [GST] => "No hardware encoder detected, falling back to software x264enc.");
+        (EncoderType::Software, "x264enc")
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let settings = Settings::load().await?;
@@ -196,6 +215,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     log_to!(logger, Info, [GST] => "Setting output resolution to {}x{}", width, height);
 
+    let (encoder_type, encoder_name) = detect_encoder(&logger);
+
     // Before resolution update
     // pipeline_parts.push(format!(
     //     "pipewiresrc do-timestamp=true fd={fd} path={path} ! \
@@ -212,6 +233,46 @@ async fn main() -> Result<(), Box<dyn Error>> {
     //     bitrate = settings.video_bitrate,
     // ));
 
+    let video_encoder_pipeline = match encoder_type {
+        EncoderType::Nvidia => {
+            let bitrate_bps = settings.video_bitrate as u64 * 1000;
+            log_to!(logger, Info, [GST] => "Using bitrate: {} bps for nvh264enc", bitrate_bps);
+            format!(
+                "cudaupload ! {encoder_name} bitrate={bitrate_bps } ! h264parse config-interval=-1",
+            )
+        }
+        EncoderType::Vaapi => {
+            let bitrate_bps = settings.video_bitrate as u64 * 1000;
+            log_to!(logger, Info, [GST] => "Using bitrate: {} bps for vaapih264enc", bitrate_bps);
+            format!("{encoder_name} bitrate={bitrate_bps } ! h264parse config-interval=-1",)
+        }
+        EncoderType::Software => {
+            log_to!(logger, Info, [GST] => "Using bitrate: {} kbps for x264enc", settings.video_bitrate);
+            format!(
+                "{encoder} bitrate={bitrate} speed-preset=ultrafast tune=zerolatency ! h264parse config-interval=-1",
+                encoder = encoder_name,
+                bitrate = settings.video_bitrate
+            )
+        }
+    };
+
+    // pipeline_parts.push(format!(
+    //     "pipewiresrc do-timestamp=true fd={fd} path={path} ! \
+    //     queue max-size-buffers=8 leaky=downstream ! \
+    //     videoconvert ! videoscale ! \
+    //     video/x-raw,width={width},height={height},format=(string)NV12 ! \
+    //     videorate ! video/x-raw,framerate={fps}/1 ! \
+    //     queue max-size-buffers=8 leaky=downstream ! \
+    //     cudaupload ! nvh264enc bitrate={bitrate} ! \
+    //     h264parse  config-interval=-1 ! queue ! mux.video_0",
+    //     fd = pipewire_fd.as_raw_fd(),
+    //     path = node_id,
+    //     fps = settings.clip_fps,
+    //     width = width,
+    //     height = height,
+    //     bitrate = settings.video_bitrate,
+    // ));
+
     pipeline_parts.push(format!(
         "pipewiresrc do-timestamp=true fd={fd} path={path} ! \
         queue max-size-buffers=8 leaky=downstream ! \
@@ -219,14 +280,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         video/x-raw,width={width},height={height},format=(string)NV12 ! \
         videorate ! video/x-raw,framerate={fps}/1 ! \
         queue max-size-buffers=8 leaky=downstream ! \
-        cudaupload ! nvh264enc bitrate={bitrate} ! \
-        h264parse  config-interval=-1 ! queue ! mux.video_0",
+        {video_encoder_pipeline} ! queue ! mux.video_0",
         fd = pipewire_fd.as_raw_fd(),
         path = node_id,
         fps = settings.clip_fps,
         width = width,
         height = height,
-        bitrate = settings.video_bitrate,
+        video_encoder_pipeline = video_encoder_pipeline,
     ));
 
     if has_audio {
