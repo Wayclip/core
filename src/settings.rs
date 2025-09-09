@@ -6,6 +6,7 @@ use crate::PathBuf;
 use crate::Value;
 use anyhow::{Context, Result};
 use std::collections::HashSet;
+use std::env;
 use std::path::Path;
 use tokio::fs;
 
@@ -37,14 +38,16 @@ pub struct Settings {
 }
 
 impl Settings {
+    fn get_default_trigger_path() -> String {
+        env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|dir| dir.join("wayclip-trigger")))
+            .and_then(|p| p.to_str().map(String::from))
+            .unwrap_or_else(|| "/usr/bin/wayclip-trigger".to_string())
+    }
+
     pub async fn new() -> Result<Self> {
         let (default_source, default_sink) = get_default_audio_devices().await.unwrap_or_default();
-
-        let trigger_path = if Path::new("/home/kony/.local/bin/wayclip-trigger").exists() {
-            "/home/kony/.local/bin/wayclip-trigger".to_string()
-        } else {
-            "/usr/bin/wayclip-trigger".to_string()
-        };
 
         Ok(Self {
             api_url: String::from("https://wayclip.com"),
@@ -69,7 +72,7 @@ impl Settings {
             bg_volume: 75,
             include_mic_audio: true,
             include_bg_audio: true,
-            trigger_path,
+            trigger_path: Self::get_default_trigger_path(),
         })
     }
 
@@ -125,30 +128,33 @@ impl Settings {
         let saved_keys: HashSet<_> = saved_map.keys().cloned().collect();
         let default_keys: HashSet<_> = default_map.keys().cloned().collect();
 
-        if saved_keys == default_keys {
-            return serde_json::from_value(saved_value)
-                .context("Failed to deserialize up-to-date settings");
+        if saved_keys != default_keys {
+            let default_map_mut = default_value.as_object_mut().unwrap();
+            for (key, value) in saved_map {
+                default_map_mut.insert(key.clone(), value.clone());
+            }
+            for key in saved_keys.difference(&default_keys) {
+                log!([TAURI] => "WARN: Unknown key '{}' found in settings.json. It will be ignored.", key);
+            }
+        } else {
+            default_value = saved_value;
         }
 
-        let default_map_mut = default_value.as_object_mut().unwrap();
-
-        for (key, value) in saved_map {
-            default_map_mut.insert(key.clone(), value.clone());
-        }
-
-        for key in saved_keys.difference(&default_keys) {
-            log!([TAURI] => "WARN: Unknown key '{}' found in settings.json. It will be ignored.", key);
-        }
-
-        let final_settings: Settings = serde_json::from_value(default_value)
+        let mut final_settings: Settings = serde_json::from_value(default_value)
             .context("Failed to create final settings from merged data")?;
+
+        let trigger_path_obj = Path::new(&final_settings.trigger_path);
+        if !trigger_path_obj.exists() || fs::metadata(trigger_path_obj).await.is_err() {
+            log!([TAURI] => "WARN: Trigger path '{}' from settings is invalid. Resetting to default.", final_settings.trigger_path);
+            final_settings.trigger_path = Self::get_default_trigger_path();
+        }
 
         final_settings
             .save()
             .await
-            .context("Failed to save merged settings")?;
+            .context("Failed to save final merged settings")?;
 
-        log!([DEBUG] => "Successfully merged and saved updated settings.");
+        log!([DEBUG] => "Successfully loaded, validated, and saved settings.");
 
         Ok(final_settings)
     }
