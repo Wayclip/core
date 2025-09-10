@@ -5,6 +5,7 @@ use anyhow::{anyhow, Context, Result};
 use ashpd::desktop::{screencast::Screencast, Session};
 use base64::{engine::general_purpose, Engine as _};
 use chrono::{DateTime, Local};
+use desktop::{detect_desktop, DesktopEnv};
 use dirs::{config_dir, home_dir};
 use ffmpeg_next::codec::Context as CodecContext;
 use ffmpeg_next::format::{input, Pixel};
@@ -48,12 +49,11 @@ pub const AUTH: &str = "\x1b[94m[auth]\x1b[0m"; // idk
 
 pub mod api;
 pub mod control;
+pub mod desktop;
 pub mod logging;
 pub mod models;
 pub mod ring;
 pub mod settings;
-
-pub const WAYCLIP_TRIGGER_PATH: &str = "/usr/bin/wayclip-trigger";
 
 #[derive(Deserialize)]
 pub struct PullClipsArgs {
@@ -226,31 +226,6 @@ pub async fn handle_bus_messages(pipeline: gstreamer::Pipeline, logger: Logger) 
     log_to!(logger, Info, [GSTBUS] => "Stopped bus message handler.");
 }
 
-pub async fn setup_hyprland(logger: &Logger) {
-    let output = Command::new("hyprctl")
-        .args([
-            "keyword",
-            "bind",
-            format!("Alt_L,C,exec,{WAYCLIP_TRIGGER_PATH}").as_str(),
-        ])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .expect("Failed to spawn hyprctl")
-        .wait()
-        .await;
-    if let Ok(output) = output {
-        if output.success() {
-            log_to!(*logger, Info, [HYPR] => "Bind added successfully");
-        } else {
-            log_to!(*logger, Error, [HYPR] => "Bind failed");
-            log_to!(*logger, Error, [HYPR] => "Error: {}", output.to_string());
-        }
-    } else {
-        log_to!(*logger, Error, [HYPR] => "Failed to add bind hyprctl");
-    }
-}
-
 pub async fn cleanup(
     pipeline: &gstreamer::Element,
     session: &Session<'_, Screencast<'_>>,
@@ -259,27 +234,70 @@ pub async fn cleanup(
 ) {
     send_status_to_gui(
         settings.gui_socket_path.clone(),
-        String::from("Shuting down..."),
+        String::from("Shutting down..."),
         &logger,
     );
 
     log_to!(logger, Info, [CLEANUP] => "Starting graceful shutdown...");
 
-    if std::env::var("DESKTOP_SESSION") == Ok("hyprland".to_string()) {
-        let output = Command::new("hyprctl")
-            .args(["keyword", "unbind", "Alt_L,C"])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .expect("Failed to spawn hyprctl for unbind")
-            .wait()
-            .await;
-        if let Ok(output) = output {
-            if output.success() {
-                log_to!(logger, Info, [HYPR] => "Bind removed successfully");
-            } else {
-                log_to!(logger, Error, [HYPR] => "Failed to remove bind");
+    match detect_desktop() {
+        DesktopEnv::Hyprland => {
+            let output = Command::new("hyprctl")
+                .args(["keyword", "unbind", "Alt_L,C"])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn();
+
+            match output {
+                Ok(mut child) => {
+                    if let Ok(status) = child.wait().await {
+                        if status.success() {
+                            log_to!(logger, Info, [HYPR] => "Hyprland bind removed successfully");
+                        } else {
+                            log_to!(logger, Error, [HYPR] => "Hyprland unbind failed with nonzero exit");
+                        }
+                    }
+                }
+                Err(e) => {
+                    log_to!(logger, Error, [HYPR] => "Failed to spawn hyprctl for unbind: {e}")
+                }
             }
+        }
+
+        DesktopEnv::Sway => {
+            let output = Command::new("swaymsg")
+                .args(["unbindsym", "Alt+c"])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn();
+
+            match output {
+                Ok(mut child) => {
+                    if let Ok(status) = child.wait().await {
+                        if status.success() {
+                            log_to!(logger, Info, [DEBUG] => "Sway bind removed successfully");
+                        } else {
+                            log_to!(logger, Error, [DEBUG] => "Sway unbind failed with nonzero exit");
+                        }
+                    }
+                }
+                Err(e) => {
+                    log_to!(logger, Error, [DEBUG] => "Failed to spawn swaymsg for unbind: {e}")
+                }
+            }
+        }
+
+        DesktopEnv::Gnome | DesktopEnv::Plasma | DesktopEnv::Xfce => {
+            log_to!(logger, Info, [DEBUG] =>
+                "This environment manages keybinds via its settings daemon. \
+                 Nothing to clean up automatically."
+            );
+        }
+
+        DesktopEnv::Unknown => {
+            log_to!(logger, Warn, [DEBUG] =>
+                "Unknown compositor/desktop. Skipping unbind."
+            );
         }
     }
 
@@ -296,15 +314,9 @@ pub async fn cleanup(
     }
 
     if let Err(e) = remove_file(settings.daemon_socket_path.clone()) {
-        log_to!(logger, Warn, [UNIX] => "Failed to remove daemon socket file, {}", e);
+        log_to!(logger, Warn, [UNIX] => "Failed to remove daemon socket file, {e}");
     } else {
         log_to!(logger, Info, [UNIX] => "Daemon socket file removed");
-    }
-
-    if let Err(e) = remove_file(&settings.daemon_pid_path) {
-        log_to!(logger, Warn, [UNIX] => "Failed to remove daemon PID file, {}", e);
-    } else {
-        log_to!(logger, Info, [UNIX] => "Daemon PID file removed");
     }
 
     send_status_to_gui(
@@ -312,7 +324,8 @@ pub async fn cleanup(
         String::from("Inactive"),
         &logger,
     );
-    log_to!(logger, Info,[CLEANUP] => "Graceful shutdown complete.");
+
+    log_to!(logger, Info, [CLEANUP] => "Graceful shutdown complete.");
 }
 
 // Other misc stuff

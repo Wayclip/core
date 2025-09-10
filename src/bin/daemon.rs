@@ -21,8 +21,9 @@ use tokio::process::Command;
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use wayclip_core::{
-    cleanup, generate_preview_clip, get_pipewire_node_id, handle_bus_messages, log_to,
-    logging::Logger, ring::RingBuffer, send_status_to_gui, settings::Settings, setup_hyprland,
+    cleanup, desktop::setup_trigger, generate_preview_clip, get_pipewire_node_id,
+    handle_bus_messages, log_to, logging::Logger, ring::RingBuffer, send_status_to_gui,
+    settings::Settings,
 };
 
 const SAVE_COOLDOWN: Duration = Duration::from_secs(2);
@@ -80,11 +81,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let listener =
         UnixListener::bind(&settings.daemon_socket_path).expect("Failed to bind unix socket");
 
-    if std::env::var("DESKTOP_SESSION") == Ok("hyprland".to_string()) {
-        setup_hyprland(&logger).await;
-    } else {
-        log_to!(logger, Info, [HYPR] => "Not using hyprland. Please bind Alt+C to trigger save.");
-    }
+    setup_trigger(&settings.trigger_path, &logger).await;
 
     let proxy = Screencast::new()
         .await
@@ -235,14 +232,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let video_encoder_pipeline = match encoder_type {
         EncoderType::Nvidia => {
-            let bitrate_bps = settings.video_bitrate as u64 * 1000;
+            let bitrate_bps = settings.video_bitrate as u64;
             log_to!(logger, Info, [GST] => "Using bitrate: {} bps for nvh264enc", bitrate_bps);
             format!(
                 "cudaupload ! {encoder_name} bitrate={bitrate_bps } ! h264parse config-interval=-1",
             )
         }
         EncoderType::Vaapi => {
-            let bitrate_bps = settings.video_bitrate as u64 * 1000;
+            let bitrate_bps = settings.video_bitrate as u64;
             log_to!(logger, Info, [GST] => "Using bitrate: {} bps for vaapih264enc", bitrate_bps);
             format!("{encoder_name} bitrate={bitrate_bps } ! h264parse config-interval=-1",)
         }
@@ -457,7 +454,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 let map = buffer.map_readable().map_err(|_| gst::FlowError::Error)?;
                 let data = map.as_slice().to_vec();
 
-                log_to!(logger_clone_for_callback, Warn, [DEBUG] => "Writing chunk to file. PTS: {:?}, Size: {}, IsHeader: {}", pts, data.len(), is_header);
+                log_to!(logger_clone_for_callback, Debug, [DEBUG] => "Writing chunk to file. PTS: {:?}, Size: {}, IsHeader: {}", pts, data.len(), is_header);
                 if let Ok(mut rb) = rb_clone.try_lock() {
                     rb.push(data, is_header, pts);
                 } else {

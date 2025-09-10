@@ -154,8 +154,6 @@ impl Settings {
             .await
             .context("Failed to save final merged settings")?;
 
-        log!([DEBUG] => "Successfully loaded, validated, and saved settings.");
-
         Ok(final_settings)
     }
 

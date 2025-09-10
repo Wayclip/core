@@ -1,6 +1,6 @@
 [package]
 name = "wayclip_core"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["konyogony"]
 description = "Core library for the Wayclip ecosystem"
 license = "MIT"
@@ -50,3 +50,4 @@ uuid = { version = "1.18.0", features = ["serde"] }
 nix = { version = "0.30.1", features = ["signal"] }
 colored = "3.0.0"
 tokio-util = { version = "0.7.16", features = ["codec"] }
+which = "8.0.0"
