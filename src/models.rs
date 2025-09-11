@@ -2,6 +2,7 @@ use crate::ClipJsonData;
 use chrono::{DateTime, Local, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, FromRow, Deserialize, Clone)]
@@ -13,15 +14,22 @@ pub struct User {
     pub tier: SubscriptionTier,
     pub created_at: DateTime<Utc>,
     pub is_banned: bool,
+    pub stripe_customer_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, sqlx::Type)]
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, sqlx::Type, Display, EnumString,
+)]
 #[sqlx(type_name = "subscription_tier", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "lowercase")]
 pub enum SubscriptionTier {
     Free,
+    #[strum(serialize = "tier1")]
     Tier1,
+    #[strum(serialize = "tier2")]
     Tier2,
+    #[strum(serialize = "tier3")]
     Tier3,
 }
 
