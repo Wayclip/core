@@ -63,6 +63,8 @@ pub struct UserProfile {
 pub struct HostedClipInfo {
     pub id: Uuid,
     pub file_name: String,
+    pub file_size: i64,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug)]
