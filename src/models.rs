@@ -8,13 +8,17 @@ use uuid::Uuid;
 #[derive(Debug, Serialize, FromRow, Deserialize, Clone)]
 pub struct User {
     pub id: Uuid,
-    pub github_id: i64,
+    pub github_id: Option<i64>,
     pub username: String,
+    pub email: Option<String>,
     pub avatar_url: Option<String>,
     pub tier: SubscriptionTier,
     pub created_at: DateTime<Utc>,
     pub is_banned: bool,
     pub stripe_customer_id: Option<String>,
+    pub two_factor_enabled: bool,
+    #[serde(skip)]
+    pub two_factor_secret: Option<String>,
 }
 
 #[derive(
@@ -38,6 +42,22 @@ pub struct GitHubUser {
     pub id: i64,
     pub login: String,
     pub avatar_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GoogleUser {
+    pub sub: String,
+    pub email: String,
+    pub name: String,
+    pub picture: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DiscordUser {
+    pub id: String,
+    pub username: String,
+    pub avatar: Option<String>,
+    pub email: Option<String>,
 }
 
 #[derive(Debug, Serialize, FromRow)]
