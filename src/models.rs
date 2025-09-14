@@ -26,6 +26,19 @@ pub struct User {
 #[derive(
     Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, sqlx::Type, Display, EnumString,
 )]
+#[sqlx(type_name = "credential_provider", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "lowercase")]
+pub enum CredentialProvider {
+    Email,
+    GitHub,
+    Google,
+    Discord,
+}
+
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, sqlx::Type, Display, EnumString,
+)]
 #[sqlx(type_name = "subscription_tier", rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
@@ -79,6 +92,7 @@ pub struct UserProfile {
     pub storage_used: i64,
     pub storage_limit: i64,
     pub clip_count: i64,
+    pub connected_accounts: Vec<CredentialProvider>,
 }
 
 #[derive(Debug, Serialize, FromRow, Deserialize, Clone)]
