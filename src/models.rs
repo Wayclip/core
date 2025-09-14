@@ -19,6 +19,7 @@ pub struct User {
     pub two_factor_enabled: bool,
     #[serde(skip)]
     pub two_factor_secret: Option<String>,
+    pub email_verified_at: Option<DateTime<Utc>>,
 }
 
 #[derive(
