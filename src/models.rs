@@ -20,6 +20,7 @@ pub struct User {
     #[serde(skip)]
     pub two_factor_secret: Option<String>,
     pub email_verified_at: Option<DateTime<Utc>>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(
