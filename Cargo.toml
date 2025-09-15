@@ -1,6 +1,6 @@
 [package]
 name = "wayclip_core"
-version = "0.1.12"
+version = "0.1.13"
 authors = ["konyogony"]
 description = "Core library for the Wayclip ecosystem"
 license = "MIT"

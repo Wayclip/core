@@ -52,6 +52,34 @@ pub enum SubscriptionTier {
     Tier3,
 }
 
+#[derive(
+    Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, sqlx::Type, Display, EnumString,
+)]
+#[sqlx(type_name = "subscription_status", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum SubscriptionStatus {
+    Active,
+    Trialing,
+    PastDue,
+    Canceled,
+    Unpaid,
+}
+
+#[derive(Debug, Serialize, FromRow, Deserialize, Clone)]
+pub struct Subscription {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub stripe_subscription_id: String,
+    pub stripe_price_id: String,
+    pub status: SubscriptionStatus,
+    pub cancel_at_period_end: bool,
+    pub current_period_start: DateTime<Utc>,
+    pub current_period_end: DateTime<Utc>,
+    pub canceled_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct GitHubUser {
     pub id: i64,
