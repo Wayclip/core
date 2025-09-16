@@ -61,6 +61,7 @@ pub enum SubscriptionStatus {
     Active,
     Trialing,
     PastDue,
+    Incomplete,
     Canceled,
     Unpaid,
 }
