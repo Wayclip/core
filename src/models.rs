@@ -64,6 +64,7 @@ pub enum SubscriptionStatus {
     Incomplete,
     Canceled,
     Unpaid,
+    Disputed,
 }
 
 #[derive(Debug, Serialize, FromRow, Deserialize, Clone)]
