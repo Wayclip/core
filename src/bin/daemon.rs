@@ -5,6 +5,7 @@ use ashpd::desktop::{
 use gst::prelude::{Cast, ElementExt, GstBinExt, ObjectExt};
 use gstreamer::{self as gst};
 use gstreamer_app::AppSink;
+use sd_notify::NotifyState;
 use std::env;
 use std::error::Error;
 use std::fs::{create_dir_all, metadata, remove_file};
@@ -47,87 +48,13 @@ fn detect_encoder(logger: &Logger) -> (EncoderType, &'static str) {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let settings = Settings::load().await?;
-    let log_dir = "/tmp/wayclip";
-    create_dir_all(log_dir).expect("Failed to create log directory");
-    let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
-
-    let logger = Logger::new(format!("{log_dir}/wayclip-{timestamp}.log"))
-        .expect("Failed to create daemon logger");
-
-    log_to!(logger, Info, [DAEMON] => "Starting...");
-    log_to!(logger, Debug, [DAEMON] => "Settings loaded: {:?}", settings);
-
-    env::set_var(
-        "GST_DEBUG",
-        "pipewiresrc:4,audiomixer:4,audioconvert:4,audioresample:4,opusenc:4,matroskamux:4,3",
-    );
-    gst::init().expect("Failed to init gstreamer");
-    if metadata(&settings.daemon_socket_path).is_ok() {
-        if let Err(e) = remove_file(&settings.daemon_socket_path) {
-            log_to!(logger, Error, [UNIX] => "Failed to remove existing daemon socket file: {}", e);
-            exit(1);
-        }
-    }
-
-    send_status_to_gui(
-        settings.gui_socket_path.clone(),
-        String::from("Starting"),
-        &logger,
-    );
-
-    let listener =
-        UnixListener::bind(&settings.daemon_socket_path).expect("Failed to bind unix socket");
-
-    setup_trigger(&settings.trigger_path, &logger).await;
-
-    let proxy = Screencast::new()
-        .await
-        .expect("Failed to create screencast proxy");
-    let session = proxy
-        .create_session()
-        .await
-        .expect("Failed to create screencast session");
-    proxy
-        .select_sources(
-            &session,
-            CursorMode::Hidden,
-            enumflags2::BitFlags::from(SourceType::Monitor),
-            false,
-            None,
-            PersistMode::Application,
-        )
-        .await
-        .expect("Failed to select sources");
-
-    log_to!(logger, Info, [ASH] => "Starting screencast session");
-    let response = proxy
-        .start(&session, None)
-        .await
-        .expect("Failed to start screencast session")
-        .response()
-        .expect("Failed to get screencast response");
-    let stream = response
-        .streams()
-        .first()
-        .expect("No streams found in response");
-    let node_id = stream.pipe_wire_node_id();
-    log_to!(logger, Info, [ASH] => "Streams: {:?}", stream);
-
-    let pipewire_fd = proxy
-        .open_pipe_wire_remote(&session)
-        .await
-        .expect("Failed to open pipewire remote");
-    log_to!(logger, Info, [ASH] => "Pipewire fd: {:?}", pipewire_fd.as_raw_fd());
-
-    tokio::time::sleep(Duration::from_millis(200)).await;
-
-    let clip_duration = gst::ClockTime::from_seconds(settings.clip_length_s);
-    let ring_buffer = Arc::new(Mutex::new(RingBuffer::new(clip_duration, &logger)));
-    let is_saving = Arc::new(AtomicBool::new(false));
-
+pub async fn build_and_configure_pipeline(
+    settings: &Settings,
+    pipewire_fd: &std::os::unix::prelude::RawFd,
+    node_id: u32,
+    ring_buffer: Arc<Mutex<RingBuffer>>,
+    logger: &Logger,
+) -> Result<gst::Element, Box<dyn Error>> {
     let mut pipeline_parts = Vec::new();
     let has_audio = settings.include_bg_audio || settings.include_mic_audio;
     pipeline_parts.push("matroskamux name=mux ! appsink name=sink".to_string());
@@ -212,7 +139,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     log_to!(logger, Info, [GST] => "Setting output resolution to {}x{}", width, height);
 
-    let (encoder_type, encoder_name) = detect_encoder(&logger);
+    let (encoder_type, encoder_name) = detect_encoder(logger);
 
     // Before resolution update
     // pipeline_parts.push(format!(
@@ -278,7 +205,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         videorate ! video/x-raw,framerate={fps}/1 ! \
         queue max-size-buffers=8 leaky=downstream ! \
         {video_encoder_pipeline} ! queue ! mux.video_0",
-        fd = pipewire_fd.as_raw_fd(),
+        fd = *pipewire_fd,
         path = node_id,
         fps = settings.clip_fps,
         width = width,
@@ -295,7 +222,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 [GST] => "Enabling DESKTOP audio recording for device {}",
                 settings.bg_node_name
             );
-            match get_pipewire_node_id(&settings.bg_node_name, &logger).await {
+            match get_pipewire_node_id(&settings.bg_node_name, logger).await {
                 Ok(bg_node_id) => {
                     pipeline_parts.push(format!(
                         "pipewiresrc do-timestamp=true path={bg_node_id} ! \
@@ -316,7 +243,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 [GST] => "Enabling MICROPHONE audio recording for device {}",
                 settings.mic_node_name
             );
-            match get_pipewire_node_id(&settings.mic_node_name, &logger).await {
+            match get_pipewire_node_id(&settings.mic_node_name, logger).await {
                 Ok(mic_node_id) => {
                     pipeline_parts.push(format!(
                         "pipewiresrc do-timestamp=true path={mic_node_id} ! \
@@ -466,6 +393,99 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .build(),
     );
 
+    Ok(pipeline)
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let settings = Settings::load().await?;
+    let log_dir = "/tmp/wayclip";
+    create_dir_all(log_dir).expect("Failed to create log directory");
+    let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+
+    let logger = Logger::new(format!("{log_dir}/wayclip-{timestamp}.log"))
+        .expect("Failed to create daemon logger");
+
+    log_to!(logger, Info, [DAEMON] => "Starting...");
+    log_to!(logger, Debug, [DAEMON] => "Settings loaded: {:?}", settings);
+
+    env::set_var(
+        "GST_DEBUG",
+        "pipewiresrc:4,audiomixer:4,audioconvert:4,audioresample:4,opusenc:4,matroskamux:4,3",
+    );
+    gst::init().expect("Failed to init gstreamer");
+    if metadata(&settings.daemon_socket_path).is_ok() {
+        if let Err(e) = remove_file(&settings.daemon_socket_path) {
+            log_to!(logger, Error, [UNIX] => "Failed to remove existing daemon socket file: {}", e);
+            exit(1);
+        }
+    }
+
+    send_status_to_gui(
+        settings.gui_socket_path.clone(),
+        String::from("Starting"),
+        &logger,
+    );
+
+    let listener =
+        UnixListener::bind(&settings.daemon_socket_path).expect("Failed to bind unix socket");
+
+    setup_trigger(&settings.trigger_path, &logger).await;
+
+    let proxy = Screencast::new()
+        .await
+        .expect("Failed to create screencast proxy");
+    let session = proxy
+        .create_session()
+        .await
+        .expect("Failed to create screencast session");
+    proxy
+        .select_sources(
+            &session,
+            CursorMode::Hidden,
+            enumflags2::BitFlags::from(SourceType::Monitor),
+            false,
+            None,
+            PersistMode::Application,
+        )
+        .await
+        .expect("Failed to select sources");
+
+    log_to!(logger, Info, [ASH] => "Starting screencast session");
+    let response = proxy
+        .start(&session, None)
+        .await
+        .expect("Failed to start screencast session")
+        .response()
+        .expect("Failed to get screencast response");
+    let stream = response
+        .streams()
+        .first()
+        .expect("No streams found in response");
+    let node_id = stream.pipe_wire_node_id();
+    log_to!(logger, Info, [ASH] => "Streams: {:?}", stream);
+
+    let pipewire_fd = proxy
+        .open_pipe_wire_remote(&session)
+        .await
+        .expect("Failed to open pipewire remote");
+    log_to!(logger, Info, [ASH] => "Pipewire fd: {:?}", pipewire_fd.as_raw_fd());
+
+    tokio::time::sleep(Duration::from_millis(200)).await;
+
+    let clip_duration = gst::ClockTime::from_seconds(settings.clip_length_s);
+    let ring_buffer = Arc::new(Mutex::new(RingBuffer::new(clip_duration, &logger)));
+    let is_saving = Arc::new(AtomicBool::new(false));
+
+    let mut pipeline = build_and_configure_pipeline(
+        &settings,
+        &pipewire_fd.as_raw_fd(),
+        node_id,
+        ring_buffer.clone(),
+        &logger,
+    )
+    .await?;
+
     tokio::spawn(handle_bus_messages(
         pipeline.clone().dynamic_cast::<gst::Pipeline>().unwrap(),
         logger.clone(),
@@ -479,6 +499,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .expect("Failed to set pipeline to null after error");
         exit(1);
     }
+
+    let _ = sd_notify::notify(true, &[NotifyState::Ready]);
+    log_to!(logger, Info, [DAEMON] => "Service is ready and recording.");
+
     send_status_to_gui(
         settings.gui_socket_path.clone(),
         String::from("Recording"),
@@ -544,21 +568,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             let job_id = job_id_counter.fetch_add(1, Ordering::SeqCst);
                             log_to!(logger, Info, [UNIX] => "[JOB {}] Save command received, starting process.", job_id);
 
-                            let wait_ms = 1000u64;
-                            let mut waited = 0u64;
-                            let saved_chunks = loop {
-                                let chunks = {
-                                    let mut rb = ring_buffer.lock().unwrap();
-                                    rb.get_and_clear()
-                                };
-                                if !chunks.is_empty() {
-                                    break chunks;
-                                }
-                                if waited >= wait_ms {
-                                    break Vec::new();
-                                }
-                                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-                                waited += 50;
+                            log_to!(logger, Info, [GST] => "[JOB {}] Stopping pipeline to save clip.", job_id);
+                            pipeline.set_state(gst::State::Null)?;
+                            log_to!(logger, Info, [GST] => "[JOB {}] Pipeline stopped.", job_id);
+
+
+                            let saved_chunks = {
+                                let mut rb = ring_buffer.lock().unwrap();
+                                rb.get_and_clear()
                             };
 
                             let is_saving_clone = is_saving.clone();
@@ -569,7 +586,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 
                                 if saved_chunks.is_empty() {
-                                    log_to!(ffmpeg_logger, Warn, [FFMPEG] => "[JOB {}] No chunks in buffer after waiting {}ms. Aborting.", job_id, wait_ms);
+                                    log_to!(ffmpeg_logger, Warn, [FFMPEG] => "[JOB {}] No chunks in buffer. Aborting save.", job_id);
                                     is_saving_clone.store(false, Ordering::SeqCst);
                                     return;
                                 }
@@ -639,6 +656,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                 is_saving_clone.store(false, Ordering::SeqCst);
                                 log_to!(ffmpeg_logger, Info, [FFMPEG] => "[JOB {}] Task finished and save lock released.", job_id);
                             });
+
+                            log_to!(logger, Info, [GST] => "Rebuilding and restarting pipeline post-save...");
+                            pipeline = build_and_configure_pipeline(
+                                &settings,
+                                &pipewire_fd.as_raw_fd(),
+                                node_id,
+                                ring_buffer.clone(),
+                                &logger,
+                            ).await?;
+                            pipeline.set_state(gst::State::Playing)?;
+                            tokio::spawn(handle_bus_messages(pipeline.clone().dynamic_cast::<gst::Pipeline>().unwrap(), logger.clone()));
+                            log_to!(logger, Info, [GST] => "Pipeline restarted successfully.");
+                            send_status_to_gui(settings.gui_socket_path.clone(), "Recording".into(), &logger);
+
                         } else {
                             log_to!(logger, Warn, [UNIX] => "Ignoring save request: A save is already in progress.");
                         }
@@ -659,6 +690,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
+    let _ = sd_notify::notify(true, &[NotifyState::Stopping]);
     cleanup(&pipeline, &session, settings, logger).await;
     Ok(())
 }

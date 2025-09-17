@@ -1,6 +1,6 @@
 [package]
 name = "wayclip_core"
-version = "0.1.15"
+version = "0.1.16"
 authors = ["konyogony"]
 description = "Core library for the Wayclip ecosystem"
 license = "MIT"
@@ -53,3 +53,4 @@ tokio-util = { version = "0.7.16", features = ["codec"] }
 which = "8.0.0"
 strum = "0.27.2"
 strum_macros = "0.27.2"
+sd-notify = "0.4.5"
