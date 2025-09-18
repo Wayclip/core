@@ -185,7 +185,7 @@ pub async fn share_clip(client: &Client, clip_path: &Path) -> Result<String, Api
         .mime_str("video/mp4")?;
     let form = multipart::Form::new().part("video", part);
 
-    let upload_url = format!("{}/api/upload/{}", settings.api_url, upload_id);
+    let upload_url = format!("{}/api/share/upload/{}", settings.api_url, upload_id);
     let response = client.post(&upload_url).multipart(form).send().await?;
 
     if !response.status().is_success() {
