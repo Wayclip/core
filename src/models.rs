@@ -21,6 +21,14 @@ pub struct User {
     pub two_factor_secret: Option<String>,
     pub email_verified_at: Option<DateTime<Utc>>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub role: UserRole,
+}
+
+#[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
+#[sqlx(type_name = "user_role", rename_all = "lowercase")]
+pub enum UserRole {
+    User,
+    Admin,
 }
 
 #[derive(
