@@ -118,13 +118,7 @@ impl DaemonManager {
         println!("Getting daemon logs using journaltcl...");
         let mut cmd = Command::new("journalctl");
 
-        cmd.args([
-            "--user",
-            "-u",
-            "wayclip-daemon.service",
-            "--since",
-            "'today'",
-        ]);
+        cmd.args(["--user", "-u", "wayclip-daemon.service", "--since", "today"]);
 
         let status = cmd
             .status()
