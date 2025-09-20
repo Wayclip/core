@@ -162,13 +162,13 @@ pub async fn build_and_configure_pipeline(
             let bitrate_bps = settings.video_bitrate as u64;
             log_to!(logger, Info, [GST] => "Using bitrate: {} bps for nvh264enc", bitrate_bps);
             format!(
-                "cudaupload ! {encoder_name} bitrate={bitrate_bps } ! h264parse config-interval=-1",
+                "cudaupload ! {encoder_name} bitrate={bitrate_bps} rc-mode=cbr ! h264parse config-interval=-1",
             )
         }
         EncoderType::Vaapi => {
             let bitrate_bps = settings.video_bitrate as u64;
             log_to!(logger, Info, [GST] => "Using bitrate: {} bps for vaapih264enc", bitrate_bps);
-            format!("{encoder_name} bitrate={bitrate_bps } ! h264parse config-interval=-1",)
+            format!("{encoder_name} bitrate={bitrate_bps} ! h264parse config-interval=-1",)
         }
         EncoderType::Software => {
             log_to!(logger, Info, [GST] => "Using bitrate: {} kbps for x264enc", settings.video_bitrate);
