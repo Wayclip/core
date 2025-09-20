@@ -142,15 +142,13 @@ pub struct HostedClipInfo {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnifiedClipData {
     pub name: String,
     pub full_filename: String,
-
     pub local_path: Option<String>,
     pub local_data: Option<ClipJsonData>,
     pub created_at: DateTime<Local>,
-
     pub is_hosted: bool,
-    pub hosted_id: Option<uuid::Uuid>,
+    pub hosted_id: Option<Uuid>,
 }

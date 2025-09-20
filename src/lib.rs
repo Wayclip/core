@@ -18,7 +18,7 @@ use image::{ImageFormat, RgbImage};
 use mp4::Mp4Reader;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt;
 use std::fs::{remove_file, File};
@@ -33,6 +33,7 @@ use tokio::net::UnixStream;
 use tokio::process::Command;
 use tokio::task;
 use tokio::task::JoinHandle;
+use uuid::Uuid;
 
 pub const DAEMON: &str = "\x1b[35m[daemon]\x1b[0m"; // magenta
 pub const UNIX: &str = "\x1b[36m[unix]\x1b[0m"; // cyan
@@ -81,6 +82,7 @@ pub struct ClipData {
     pub updated_at: DateTime<Local>,
     pub tags: Vec<Tag>,
     pub liked: bool,
+    pub hosted_id: Option<Uuid>,
 }
 
 #[derive(Debug, Serialize)]
@@ -102,12 +104,14 @@ impl fmt::Display for Tag {
     }
 }
 
-#[derive(Deserialize, Clone, Debug, Default)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct ClipJsonData {
     #[serde(default)]
     pub tags: Vec<Tag>,
     #[serde(default)]
     pub liked: bool,
+    #[serde(default)]
+    pub hosted_id: Option<Uuid>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -416,16 +420,21 @@ pub async fn gather_clip_data(level: Collect, args: PullClipsArgs) -> Result<Pag
                 .to_string_lossy()
                 .into_owned();
 
-            let clip_json_data = {
+            let clip_json_data: ClipJsonData = {
                 let mut data_guard = data_clone.lock().unwrap();
                 if let Some(clip_info) = data_guard.get(&name) {
                     serde_json::from_value(clip_info.clone()).unwrap_or_default()
+                } else if let Some(obj) = data_guard.as_object_mut() {
+                    let default_data = ClipJsonData::default();
+                    obj.insert(
+                        name.clone(),
+                        serde_json::to_value(&default_data)
+                            .context("Failed to serialize default clip data")?,
+                    );
+                    let mut modified_guard = data_modified_clone.lock().unwrap();
+                    *modified_guard = true;
+                    default_data
                 } else {
-                    if let Some(obj) = data_guard.as_object_mut() {
-                        obj.insert(name.clone(), json!({ "tags": [], "liked": false }));
-                        let mut modified_guard = data_modified_clone.lock().unwrap();
-                        *modified_guard = true;
-                    }
                     ClipJsonData::default()
                 }
             };
@@ -462,6 +471,7 @@ pub async fn gather_clip_data(level: Collect, args: PullClipsArgs) -> Result<Pag
                 updated_at,
                 tags: clip_json_data.tags,
                 liked: clip_json_data.liked,
+                hosted_id: clip_json_data.hosted_id,
             }))
         }));
     }
@@ -608,6 +618,38 @@ pub async fn update_liked(name: &str, liked: bool) -> Result<()> {
             }
         } else {
             obj.insert(name.to_string(), json!({ "tags": [], "liked": liked }));
+        }
+    }
+
+    write_json_data(&json_path, &data).await?;
+
+    Ok(())
+}
+
+pub async fn update_hosted_id(name: &str, hosted_id: Uuid) -> Result<()> {
+    let json_path = settings::Settings::config_path()
+        .join("wayclip")
+        .join("data.json");
+
+    let mut data: Value = if json_path.exists() {
+        let contents = fs::read_to_string(&json_path)
+            .await
+            .context("Failed to read data.json")?;
+        serde_json::from_str(&contents).unwrap_or_else(|_| json!({}))
+    } else {
+        json!({})
+    };
+
+    if let Some(obj) = data.as_object_mut() {
+        if let Some(clip) = obj.get_mut(name) {
+            if let Some(clip_obj) = clip.as_object_mut() {
+                clip_obj.insert("hosted_id".to_string(), json!(hosted_id));
+            }
+        } else {
+            obj.insert(
+                name.to_string(),
+                json!({ "tags": [], "liked": false, "hosted_id": hosted_id }),
+            );
         }
     }
 
@@ -1023,74 +1065,80 @@ pub async fn generate_frames<P: AsRef<Path>>(path: P, count: usize) -> Result<Ve
 }
 
 pub async fn gather_unified_clips() -> Result<Vec<UnifiedClipData>> {
-    let hosted_clips_index = match api::get_hosted_clips_index().await {
-        Ok(index) => index
-            .into_iter()
-            .map(|c| (c.file_name, c.id))
-            .collect::<HashMap<_, _>>(),
-        Err(_) => HashMap::new(),
+    let hosted_map: HashMap<Uuid, models::HostedClipInfo> = match api::get_hosted_clips_index()
+        .await
+    {
+        Ok(index) => index.into_iter().map(|clip| (clip.id, clip)).collect(),
+        Err(e) => {
+            log!([DEBUG] => "Could not fetch hosted clips index: {}. Proceeding with local clips only.", e);
+            HashMap::new()
+        }
     };
 
     let local_clips = gather_clip_data(
         Collect::All,
         PullClipsArgs {
             page: 1,
-            page_size: 999,
+            page_size: 9999,
             search_query: None,
         },
     )
     .await?
     .clips;
 
-    let mut unified_map: HashMap<String, UnifiedClipData> = HashMap::new();
+    let mut unified_clips = Vec::new();
+    let mut processed_hosted_ids = HashSet::new();
 
     for local_clip in local_clips {
+        let is_hosted = if let Some(id) = local_clip.hosted_id {
+            if hosted_map.contains_key(&id) {
+                processed_hosted_ids.insert(id);
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
         let full_filename = Path::new(&local_clip.path)
             .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
             .to_string();
-        unified_map.insert(
-            full_filename.clone(),
-            UnifiedClipData {
-                name: local_clip.name,
-                full_filename,
-                local_path: Some(local_clip.path),
-                local_data: Some(ClipJsonData {
-                    tags: local_clip.tags,
-                    liked: local_clip.liked,
-                }),
-                created_at: local_clip.created_at,
-                is_hosted: false,
-                hosted_id: None,
-            },
-        );
+
+        unified_clips.push(UnifiedClipData {
+            name: local_clip.name,
+            full_filename,
+            local_path: Some(local_clip.path),
+            local_data: Some(ClipJsonData {
+                tags: local_clip.tags,
+                liked: local_clip.liked,
+                hosted_id: local_clip.hosted_id,
+            }),
+            created_at: local_clip.created_at,
+            is_hosted,
+            hosted_id: local_clip.hosted_id,
+        });
     }
 
-    for (filename, hosted_id) in hosted_clips_index {
-        if let Some(existing_clip) = unified_map.get_mut(&filename) {
-            existing_clip.is_hosted = true;
-            existing_clip.hosted_id = Some(hosted_id);
-        } else {
-            let name_without_ext = filename
-                .strip_suffix(".mp4")
-                .unwrap_or(&filename)
-                .to_string();
-            unified_map.insert(
-                filename.clone(),
-                UnifiedClipData {
-                    name: name_without_ext,
-                    full_filename: filename,
-                    local_path: None,
-                    local_data: None,
-                    created_at: Local::now(),
-                    is_hosted: true,
-                    hosted_id: Some(hosted_id),
-                },
-            );
+    for (id, hosted_clip) in hosted_map {
+        if !processed_hosted_ids.contains(&id) {
+            unified_clips.push(UnifiedClipData {
+                name: hosted_clip
+                    .file_name
+                    .strip_suffix(".mp4")
+                    .unwrap_or(&hosted_clip.file_name)
+                    .to_string(),
+                full_filename: hosted_clip.file_name.clone(),
+                local_path: None,
+                local_data: None,
+                created_at: hosted_clip.created_at.with_timezone(&Local),
+                is_hosted: true,
+                hosted_id: Some(id),
+            });
         }
     }
 
-    Ok(unified_map.into_values().collect())
+    Ok(unified_clips)
 }
