@@ -24,6 +24,7 @@ pub struct User {
     pub role: UserRole,
     pub last_login_at: Option<DateTime<Utc>>,
     pub last_login_ip: Option<String>,
+    pub security_stamp: Uuid,
 }
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
