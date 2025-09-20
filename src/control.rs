@@ -113,4 +113,28 @@ impl DaemonManager {
 
         Ok(())
     }
+
+    pub async fn logs(&self) -> Result<()> {
+        println!("Getting daemon logs using journaltcl...");
+        let mut cmd = Command::new("journalctl");
+
+        cmd.args([
+            "--user",
+            "-u",
+            "wayclip-daemon.service",
+            "--since",
+            "'today'",
+        ]);
+
+        let status = cmd
+            .status()
+            .await
+            .context("Failed to execute journalctl command")?;
+
+        if !status.success() {
+            println!("{}", "\nFailed to get logs".yellow());
+        }
+
+        Ok(())
+    }
 }
