@@ -22,6 +22,8 @@ pub struct User {
     pub email_verified_at: Option<DateTime<Utc>>,
     pub deleted_at: Option<DateTime<Utc>>,
     pub role: UserRole,
+    pub last_login_at: Option<DateTime<Utc>>,
+    pub last_login_ip: Option<String>,
 }
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
