@@ -59,69 +59,8 @@ pub async fn build_and_configure_pipeline(
     let has_audio = settings.include_bg_audio || settings.include_mic_audio;
     pipeline_parts.push("matroskamux name=mux ! appsink name=sink".to_string());
 
-    // Mine: Little outdated
-    // pipeline_parts.push(format!(
-    //     "pipewiresrc do-timestamp=true fd={fd} path={path} ! \
-    //     queue ! \
-    //     video/x-raw,format=BGRx ! \
-    //     videoconvert ! \
-    //     video/x-raw,format=NV12 ! \
-    //     videorate ! \
-    //     video/x-raw,framerate={fps}/1 ! \
-    //     cudaupload ! \
-    //     nvh264enc bitrate={bitrate} ! \
-    //     h264parse ! \
-    //     queue ! \
-    //     mux.video_0",
-    //     fd = pipewire_fd.as_raw_fd(),
-    //     path = node_id,
-    //     fps = settings.clip_fps,
-    //     bitrate = settings.video_bitrate
-    // ));
-
-    // Mine: Last working one with frames
-    // pipeline_parts.push(format!(
-    //     "pipewiresrc do-timestamp=true fd={fd} path={path} ! \
-    //     queue ! \
-    //     video/x-raw,format=BGRx ! \
-    //     videoconvert ! \
-    //     video/x-raw,format=NV12 ! \
-    //     videorate ! \
-    //     video/x-raw,framerate={fps}/1 ! \
-    //     cudaupload ! \
-    //     nvh264enc bitrate={bitrate} ! \
-    //     h264parse ! \
-    //     queue ! \
-    //     mux.video_0",
-    //     fd = pipewire_fd.as_raw_fd(),
-    //     path = node_id,
-    //     fps = settings.clip_fps,
-    //     bitrate = settings.video_bitrate
-    // ));
-
-    // GROK
-    // pipeline_parts.push(format!(
-    //     "pipewiresrc do-timestamp=true fd={fd} path={path} ! \
-    // queue ! \
-    // video/x-raw(memory:SystemMemory),format=BGRx ! \
-    // videoconvert ! \
-    // video/x-raw,format=NV12 ! \
-    // videorate ! \
-    // video/x-raw,framerate={fps}/1 ! \
-    // cudaupload ! \
-    // nvh264enc bitrate={bitrate} ! \
-    // h264parse ! \
-    // queue ! \
-    // mux.video_0",
-    //     fd = pipewire_fd.as_raw_fd(),
-    //     path = node_id,
-    //     fps = settings.clip_fps,
-    //     bitrate = settings.video_bitrate
-    // ));
-
-    // GPT-5 MINI
     pipeline_parts.clear();
-    // Removed  streamable=true
+
     pipeline_parts
         .push("matroskamux name=mux ! queue max-size-buffers=2 ! appsink name=sink".to_string());
 
@@ -141,34 +80,20 @@ pub async fn build_and_configure_pipeline(
 
     let (encoder_type, encoder_name) = detect_encoder(logger);
 
-    // Before resolution update
-    // pipeline_parts.push(format!(
-    //     "pipewiresrc do-timestamp=true fd={fd} path={path} ! \
-    //     queue max-size-buffers=8 leaky=downstream ! \
-    //     videoconvert ! videoscale ! \
-    //     video/x-raw,format=(string)NV12 ! \
-    //     videorate ! video/x-raw,framerate={fps}/1 ! \
-    //     queue max-size-buffers=8 leaky=downstream ! \
-    //     cudaupload ! nvh264enc bitrate={bitrate} ! \
-    //     h264parse ! queue ! mux.video_0",
-    //     fd = pipewire_fd.as_raw_fd(),
-    //     path = node_id,
-    //     fps = settings.clip_fps,
-    //     bitrate = settings.video_bitrate,
-    // ));
-
     let video_encoder_pipeline = match encoder_type {
         EncoderType::Nvidia => {
-            let bitrate_bps = settings.video_bitrate as u64;
-            log_to!(logger, Info, [GST] => "Using bitrate: {} bps for nvh264enc", bitrate_bps);
+            log_to!(logger, Info, [GST] => "Using bitrate: {} kbps for nvh264enc", settings.video_bitrate);
             format!(
-                "cudaupload ! {encoder_name} bitrate={bitrate_bps} rc-mode=cbr ! h264parse config-interval=-1",
+                "cudaupload ! {encoder_name} bitrate={} rc-mode=cbr ! h264parse config-interval=-1",
+                settings.video_bitrate
             )
         }
         EncoderType::Vaapi => {
-            let bitrate_bps = settings.video_bitrate as u64;
-            log_to!(logger, Info, [GST] => "Using bitrate: {} bps for vaapih264enc", bitrate_bps);
-            format!("{encoder_name} bitrate={bitrate_bps} ! h264parse config-interval=-1",)
+            log_to!(logger, Info, [GST] => "Using bitrate: {} kbps for vaapih264enc", settings.video_bitrate);
+            format!(
+                "{encoder_name} bitrate={} ! h264parse config-interval=-1",
+                settings.video_bitrate
+            )
         }
         EncoderType::Software => {
             log_to!(logger, Info, [GST] => "Using bitrate: {} kbps for x264enc", settings.video_bitrate);
@@ -179,23 +104,6 @@ pub async fn build_and_configure_pipeline(
             )
         }
     };
-
-    // pipeline_parts.push(format!(
-    //     "pipewiresrc do-timestamp=true fd={fd} path={path} ! \
-    //     queue max-size-buffers=8 leaky=downstream ! \
-    //     videoconvert ! videoscale ! \
-    //     video/x-raw,width={width},height={height},format=(string)NV12 ! \
-    //     videorate ! video/x-raw,framerate={fps}/1 ! \
-    //     queue max-size-buffers=8 leaky=downstream ! \
-    //     cudaupload ! nvh264enc bitrate={bitrate} ! \
-    //     h264parse  config-interval=-1 ! queue ! mux.video_0",
-    //     fd = pipewire_fd.as_raw_fd(),
-    //     path = node_id,
-    //     fps = settings.clip_fps,
-    //     width = width,
-    //     height = height,
-    //     bitrate = settings.video_bitrate,
-    // ));
 
     pipeline_parts.push(format!(
         "pipewiresrc do-timestamp=true fd={fd} path={path} ! \
@@ -230,7 +138,6 @@ pub async fn build_and_configure_pipeline(
                         audio/x-raw,rate=48000,channels=2 ! \
                         audioconvert ! audioresample ! mix.sink_0",
                     ));
-                    //queue max-size-buffers=8 ! audioconvert ! audioresample ! mix.sink_1",
                 }
                 Err(e) => {
                     log_to!(logger, Error, [GST] => "Could not find monitor source '{}': {}. Background audio will not be recorded.", settings.bg_node_name, e);
@@ -251,7 +158,6 @@ pub async fn build_and_configure_pipeline(
                         audio/x-raw,rate=48000,channels=2 ! \
                         audioconvert ! audioresample ! mix.sink_1",
                     ));
-                    //queue max-size-buffers=8 ! audioconvert ! audioresample ! mix.sink_1",
                 }
                 Err(e) => {
                     log_to!(logger, Error, [GST] => "Could not find microphone source '{}': {}. Mic audio will not be recorded.", settings.mic_node_name, e);
@@ -259,74 +165,6 @@ pub async fn build_and_configure_pipeline(
             }
         }
     }
-    // pipeline_parts.push(
-    //     "audiomixer name=mix ! \
-    //       opusenc ! opusparse ! queue ! mux.audio_0"
-    //         .to_string(),
-    // );
-
-    // if settings.include_desktop_audio {
-    //     log_to!(logger, Info,
-    //         [GST] => "Enabling DESKTOP audio recording for device {}",
-    //         DESKTOP_AUDIO_DEVICE_ID
-    //     );
-    //     pipeline_parts.push(format!(
-    //         "pipewiresrc do-timestamp=true path={DESKTOP_AUDIO_DEVICE_ID} ! \
-    //           audio/x-raw ! queue ! audioconvert ! audioresample ! mix.sink_0"
-    //     ));
-    // }
-
-    // if settings.include_mic_audio {
-    //     log_to!(logger, Info,
-    //         [GST] => "Enabling MICROPHONE audio recording for device {}",
-    //         MIC_AUDIO_DEVICE_ID
-    //     );
-    //     pipeline_parts.push(format!(
-    //         "pipewiresrc do-timestamp=true path={MIC_AUDIO_DEVICE_ID} ! \
-    //           audio/x-raw ! queue ! audioconvert ! audioresample ! mix.sink_1"
-    //     ));
-    // }
-
-    // pipeline_parts.push("matroskamux name=mux streamable=true ! appsink name=sink".to_string());
-
-    // pipeline_parts.push(format!(
-    //     "pipewiresrc do-timestamp=true fd={fd} path={path} ! "
-    //     // REMOVED rigid format request. Let videoconvert negotiate automatically.
-    //     // This is the key to fixing the "no more input formats" error.
-    //     "videoconvert ! "
-    //     "videoscale ! "
-    //     "video/x-raw,format=NV12,framerate={fps}/1 ! "
-    //     // Queues for synchronization and buffering.
-    //     "queue max-size-time=3000000000 leaky=2 ! "
-    //     "cudaupload ! nvh264enc bitrate={bitrate} ! h264parse ! "
-    //     "queue max-size-time=3000000000 leaky=2 ! "
-    //     "mux.video_0",
-    //     fd = pipewire_fd.as_raw_fd(),
-    //     path = node_id,
-    //     fps = settings.clip_fps,
-    //     bitrate = settings.video_bitrate
-    // ));
-
-    // if has_audio {
-    //     let mut audio_pipeline_parts = Vec::new();
-    //     audio_pipeline_parts.push(
-    //         "audiomixer name=mix ! opusenc ! opusparse ! queue max-size-time=3000000000 ! mux.audio_0"
-    //             .to_string(),
-    //     );
-    //     if settings.include_desktop_audio {
-    //         log_to!(logger, Info, [GST] => "Enabling DESKTOP audio recording for device {}", DESKTOP_AUDIO_DEVICE_ID);
-    //         audio_pipeline_parts.push(format!(
-    //             "pipewiresrc do-timestamp=true path={DESKTOP_AUDIO_DEVICE_ID} ! audio/x-raw ! queue ! audioconvert ! audioresample ! mix.sink_0"
-    //         ));
-    //     }
-    //     if settings.include_mic_audio {
-    //         log_to!(logger, Info, [GST] => "Enabling MICROPHONE audio recording for device {}", MIC_AUDIO_DEVICE_ID);
-    //         audio_pipeline_parts.push(format!(
-    //             "pipewiresrc do-timestamp=true path={MIC_AUDIO_DEVICE_ID} ! audio/x-raw ! queue ! audioconvert ! audioresample ! mix.sink_1"
-    //         ));
-    //     }
-    //     pipeline_parts.push(audio_pipeline_parts.join(" "));
-    // }
 
     let pipeline_str = pipeline_parts.join(" ");
 
@@ -367,7 +205,7 @@ pub async fn build_and_configure_pipeline(
         .expect("Failed to cast to appsink");
 
     appsink.set_property("drop", true);
-    appsink.set_property("max-buffers", 5_u32);
+    appsink.set_property("max-buffers", 5u32);
 
     let rb_clone = ring_buffer.clone();
     let logger_clone_for_callback = logger.clone();
@@ -446,7 +284,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             enumflags2::BitFlags::from(SourceType::Monitor),
             false,
             None,
-            PersistMode::Application,
+            PersistMode::ExplicitlyRevoked,
         )
         .await
         .expect("Failed to select sources");
@@ -471,7 +309,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .expect("Failed to open pipewire remote");
     log_to!(logger, Info, [ASH] => "Pipewire fd: {:?}", pipewire_fd.as_raw_fd());
 
-    tokio::time::sleep(Duration::from_millis(200)).await;
+    tokio::time::sleep(Duration::from_millis(1000)).await;
 
     let clip_duration = gst::ClockTime::from_seconds(settings.clip_length_s);
     let ring_buffer = Arc::new(Mutex::new(RingBuffer::new(clip_duration, &logger)));
@@ -492,12 +330,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
 
     log_to!(logger, Info, [GST] => "Setting pipeline to playing for constant recording");
-    if let Err(err) = pipeline.set_state(gst::State::Playing) {
-        log_to!(logger, Error, [GST] => "Failed to set pipeline to playing: {:?}", err);
-        pipeline
-            .set_state(gst::State::Null)
-            .expect("Failed to set pipeline to null after error");
-        exit(1);
+    let max_retries = 3u32;
+    let mut retry_count = 0;
+    loop {
+        match pipeline.set_state(gst::State::Playing) {
+            Ok(_) => {
+                log_to!(logger, Info, [GST] => "Pipeline transitioned to Playing successfully.");
+                break;
+            }
+            Err(err) => {
+                retry_count += 1;
+                log_to!(logger, Error, [GST] => "Pipeline state change failed (attempt {}/{}): {:?}. Retrying...", retry_count, max_retries, err);
+                if retry_count >= max_retries {
+                    log_to!(logger, Error, [GST] => "Max retries exceeded. Shutting down.");
+                    let _ = pipeline.set_state(gst::State::Null);
+                    return Err(Box::new(err) as Box<dyn Error>);
+                }
+                tokio::time::sleep(Duration::from_millis(500)).await;
+            }
+        }
     }
 
     let _ = sd_notify::notify(true, &[NotifyState::Ready]);
@@ -569,7 +420,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             log_to!(logger, Info, [UNIX] => "[JOB {}] Save command received, starting process.", job_id);
 
                             log_to!(logger, Info, [GST] => "[JOB {}] Stopping pipeline to save clip.", job_id);
-                            pipeline.set_state(gst::State::Null)?;
+                            pipeline.set_state(gst::State::Null).map_err(|e| Box::new(e) as Box<dyn Error>)?;
                             log_to!(logger, Info, [GST] => "[JOB {}] Pipeline stopped.", job_id);
 
 
@@ -635,7 +486,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                 match ffmpeg_child.wait().await {
                                     Ok(status) if status.success() => {
                                         log_to!(ffmpeg_logger, Info, [FFMPEG] => "[JOB {}] Done! Saved to {:?}", job_id, output_filename);
-                                        send_status_to_gui(settings_clone.gui_socket_path.clone(), String::from("Saved!"), &ffmpeg_logger);
                                         let gui_path = settings_clone.gui_socket_path.clone();
                                         let ffmpeg_logger_clone = ffmpeg_logger.clone();
                                         tokio::spawn(async move {
@@ -665,7 +515,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                 ring_buffer.clone(),
                                 &logger,
                             ).await?;
-                            pipeline.set_state(gst::State::Playing)?;
+                            pipeline.set_state(gst::State::Playing).map_err(|e| Box::new(e) as Box<dyn Error>)?;
                             tokio::spawn(handle_bus_messages(pipeline.clone().dynamic_cast::<gst::Pipeline>().unwrap(), logger.clone()));
                             log_to!(logger, Info, [GST] => "Pipeline restarted successfully.");
                             send_status_to_gui(settings.gui_socket_path.clone(), "Recording".into(), &logger);

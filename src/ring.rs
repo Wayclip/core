@@ -39,7 +39,7 @@ impl RingBuffer {
 
         if !self.header_complete {
             log_to!(self.logger, Info, [RING] => "First frame detected (non-header). Header is now complete with {} chunks.", self.header.len());
-            log_to!(self.logger, Info, [DAEMON] => "Recording successfully started, and live! Ctrl + C for graceful shutdown, ALT+C to save clip (hyprland only so far)");
+            log_to!(self.logger, Info, [DAEMON] => "Recording successfully started, and live! Ctrl + C for graceful shutdown, ALT+C to save clip");
             self.header_complete = true;
         }
 
@@ -56,7 +56,7 @@ impl RingBuffer {
                         break;
                     }
                 } else {
-                    log_to!(self.logger, Warn, [RING] => "Timestamp reset detected (last < first). Clearing buffer to resync.");
+                    log_to!(self.logger, Warn, [RING] => "Timestamp reset detected (last < first). Clearing buffer to resync. Please restart daemon, this is a fatal error.");
                     self.buffer.clear();
                     break;
                 }
