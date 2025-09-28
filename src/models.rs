@@ -3,7 +3,6 @@ use crate::HashMap;
 use chrono::{DateTime, Local, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use std::env;
 use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
@@ -30,10 +29,10 @@ pub struct User {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TierConfig {
-    tier_id: Uuid,
-    name: String,
-    max_storage_bytes: u64,
-    stripe_price_id: Option<String>,
+    pub tier_id: Uuid,
+    pub name: String,
+    pub max_storage_bytes: u64,
+    pub stripe_price_id: Option<String>,
 }
 
 impl TierConfig {
