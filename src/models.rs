@@ -13,6 +13,7 @@ pub struct User {
     pub username: String,
     pub email: Option<String>,
     pub avatar_url: Option<String>,
+    pub tier: String,
     pub created_at: DateTime<Utc>,
     pub is_banned: bool,
     pub subscription: UserSubscription,
@@ -42,7 +43,7 @@ impl TierConfig {
             Self::parse_size(storage_str).expect("Invalid max_storage format in TIERS_JSON");
 
         TierConfig {
-            tier_id: Uuid::default(),
+            tier_id: Uuid::new_v4(),
             name: json_value["name"].as_str().unwrap_or("Unnamed").to_string(),
             max_storage_bytes,
             stripe_price_id: json_value["stripe_price_id"]
