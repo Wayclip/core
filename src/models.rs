@@ -1,8 +1,8 @@
 use crate::ClipJsonData;
-use crate::HashMap;
 use chrono::{DateTime, Local, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use std::collections::HashMap;
 use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
@@ -13,10 +13,8 @@ pub struct User {
     pub username: String,
     pub email: Option<String>,
     pub avatar_url: Option<String>,
-    pub tier: String,
     pub created_at: DateTime<Utc>,
     pub is_banned: bool,
-    pub subscription: UserSubscription,
     pub two_factor_enabled: bool,
     #[serde(skip)]
     pub two_factor_secret: Option<String>,
@@ -26,11 +24,12 @@ pub struct User {
     pub last_login_at: Option<DateTime<Utc>>,
     pub last_login_ip: Option<String>,
     pub security_stamp: Uuid,
+    pub tier: String,
+    pub stripe_customer_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TierConfig {
-    pub tier_id: Uuid,
     pub name: String,
     pub max_storage_bytes: u64,
     pub stripe_price_id: Option<String>,
@@ -43,7 +42,6 @@ impl TierConfig {
             Self::parse_size(storage_str).expect("Invalid max_storage format in TIERS_JSON");
 
         TierConfig {
-            tier_id: Uuid::new_v4(),
             name: json_value["name"].as_str().unwrap_or("Unnamed").to_string(),
             max_storage_bytes,
             stripe_price_id: json_value["stripe_price_id"]
@@ -76,7 +74,7 @@ impl TierConfig {
     }
 }
 
-pub fn load_tiers() -> HashMap<Uuid, TierConfig> {
+pub fn load_tiers() -> HashMap<String, TierConfig> {
     let json = std::env::var("TIERS_JSON").unwrap_or_else(|_| "[]".to_string());
     let parsed: serde_json::Value = serde_json::from_str(&json).expect("Invalid TIERS_JSON format");
 
@@ -86,7 +84,7 @@ pub fn load_tiers() -> HashMap<Uuid, TierConfig> {
         .iter()
         .map(|v| {
             let tier = TierConfig::from_json_value(v);
-            (tier.tier_id, tier)
+            (tier.name.clone(), tier)
         })
         .collect()
 }
@@ -128,9 +126,11 @@ pub enum SubscriptionStatus {
 }
 
 #[derive(Debug, Serialize, FromRow, Deserialize, Clone)]
-pub struct UserSubscription {
-    pub tier_id: Uuid,
-    pub stripe_subscription_id: Option<String>,
+pub struct Subscription {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub stripe_subscription_id: String,
+    pub stripe_price_id: String,
     pub status: SubscriptionStatus,
     pub cancel_at_period_end: bool,
     pub current_period_start: DateTime<Utc>,
