@@ -26,6 +26,8 @@ pub struct User {
     pub security_stamp: Uuid,
     pub tier: String,
     pub stripe_customer_id: Option<String>,
+    #[sqlx(skip)]
+    pub subscription: Option<UserSubscription>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -126,7 +128,7 @@ pub enum SubscriptionStatus {
 }
 
 #[derive(Debug, Serialize, FromRow, Deserialize, Clone)]
-pub struct Subscription {
+pub struct UserSubscription {
     pub id: Uuid,
     pub user_id: Uuid,
     pub stripe_subscription_id: String,
