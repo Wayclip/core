@@ -2,7 +2,6 @@ use crate::ClipJsonData;
 use chrono::{DateTime, Local, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
-use std::collections::HashMap;
 use strum_macros::{Display, EnumString};
 use uuid::Uuid;
 
@@ -30,65 +29,12 @@ pub struct User {
     pub subscription: Option<UserSubscription>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct TierConfig {
     pub name: String,
+    #[sqlx(rename = "max_storage_bytes")]
     pub max_storage_bytes: u64,
     pub stripe_price_id: Option<String>,
-}
-
-impl TierConfig {
-    pub fn from_json_value(json_value: &serde_json::Value) -> Self {
-        let storage_str = json_value["max_storage"].as_str().unwrap_or("5GB");
-        let max_storage_bytes =
-            Self::parse_size(storage_str).expect("Invalid max_storage format in TIERS_JSON");
-
-        TierConfig {
-            name: json_value["name"].as_str().unwrap_or("Unnamed").to_string(),
-            max_storage_bytes,
-            stripe_price_id: json_value["stripe_price_id"]
-                .as_str()
-                .map(|s| s.to_string()),
-        }
-    }
-
-    pub fn parse_size(size_str: &str) -> Result<u64, String> {
-        let s = size_str.trim().to_uppercase();
-        let (value_str, unit) = s.split_at(s.trim_end_matches(|c: char| c.is_alphabetic()).len());
-
-        let value = value_str
-            .parse::<u64>()
-            .map_err(|_| format!("Invalid number in size string: '{size_str}'"))?;
-
-        const KB: u64 = 1024;
-        const MB: u64 = 1024 * KB;
-        const GB: u64 = 1024 * MB;
-        const TB: u64 = 1024 * GB;
-
-        match unit {
-            "B" | "" => Ok(value),
-            "KB" => Ok(value * KB),
-            "MB" => Ok(value * MB),
-            "GB" => Ok(value * GB),
-            "TB" => Ok(value * TB),
-            _ => Err(format!("Unknown size unit '{unit}' in string '{size_str}'")),
-        }
-    }
-}
-
-pub fn load_tiers() -> HashMap<String, TierConfig> {
-    let json = std::env::var("TIERS_JSON").unwrap_or_else(|_| "[]".to_string());
-    let parsed: serde_json::Value = serde_json::from_str(&json).expect("Invalid TIERS_JSON format");
-
-    parsed
-        .as_array()
-        .unwrap_or(&vec![])
-        .iter()
-        .map(|v| {
-            let tier = TierConfig::from_json_value(v);
-            (tier.name.clone(), tier)
-        })
-        .collect()
 }
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
