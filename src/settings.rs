@@ -93,7 +93,7 @@ impl Settings {
         Ok(settings)
     }
 
-    pub async fn load() -> Result<Self> {
+    pub async fn load() -> anyhow::Result<Self> {
         let path = Self::config_path().join("wayclip").join("settings.json");
 
         if !path.exists() {
