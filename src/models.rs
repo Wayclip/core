@@ -35,6 +35,11 @@ pub struct TierConfig {
     #[sqlx(rename = "max_storage_bytes")]
     pub max_storage_bytes: u64,
     pub stripe_price_id: Option<String>,
+    pub display_price: String,
+    pub display_frequency: Option<String>,
+    pub description: Option<String>,
+    pub display_features: Option<Vec<String>>,
+    pub is_popular: Option<bool>,
 }
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
