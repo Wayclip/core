@@ -12,10 +12,8 @@ pub struct User {
     pub username: String,
     pub email: Option<String>,
     pub avatar_url: Option<String>,
-    pub tier: SubscriptionTier,
     pub created_at: DateTime<Utc>,
     pub is_banned: bool,
-    pub stripe_customer_id: Option<String>,
     pub two_factor_enabled: bool,
     #[serde(skip)]
     pub two_factor_secret: Option<String>,
@@ -25,6 +23,23 @@ pub struct User {
     pub last_login_at: Option<DateTime<Utc>>,
     pub last_login_ip: Option<String>,
     pub security_stamp: Uuid,
+    pub tier: String,
+    pub stripe_customer_id: Option<String>,
+    #[sqlx(skip)]
+    pub subscription: Option<UserSubscription>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct TierConfig {
+    pub name: String,
+    #[sqlx(rename = "max_storage_bytes")]
+    pub max_storage_bytes: i64,
+    pub stripe_price_id: Option<String>,
+    pub display_price: String,
+    pub display_frequency: Option<String>,
+    pub description: Option<String>,
+    pub display_features: Option<Vec<String>>,
+    pub is_popular: Option<bool>,
 }
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq)]
@@ -51,22 +66,6 @@ pub enum CredentialProvider {
 #[derive(
     Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, sqlx::Type, Display, EnumString,
 )]
-#[sqlx(type_name = "subscription_tier", rename_all = "lowercase")]
-#[serde(rename_all = "lowercase")]
-#[strum(serialize_all = "lowercase")]
-pub enum SubscriptionTier {
-    Free,
-    #[strum(serialize = "tier1")]
-    Tier1,
-    #[strum(serialize = "tier2")]
-    Tier2,
-    #[strum(serialize = "tier3")]
-    Tier3,
-}
-
-#[derive(
-    Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, sqlx::Type, Display, EnumString,
-)]
 #[sqlx(type_name = "subscription_status", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum SubscriptionStatus {
@@ -80,7 +79,7 @@ pub enum SubscriptionStatus {
 }
 
 #[derive(Debug, Serialize, FromRow, Deserialize, Clone)]
-pub struct Subscription {
+pub struct UserSubscription {
     pub id: Uuid,
     pub user_id: Uuid,
     pub stripe_subscription_id: String,

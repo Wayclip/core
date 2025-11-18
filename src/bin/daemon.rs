@@ -1,14 +1,15 @@
 use ashpd::desktop::{
     screencast::{CursorMode, Screencast, SourceType},
-    PersistMode,
+    PersistMode, Session,
 };
+use dirs::config_dir;
 use gst::prelude::{Cast, ElementExt, GstBinExt, ObjectExt};
 use gstreamer::{self as gst};
 use gstreamer_app::AppSink;
 use sd_notify::NotifyState;
 use std::env;
-use std::error::Error;
 use std::fs::{create_dir_all, metadata, remove_file};
+use std::fs::{read_to_string, write};
 use std::os::unix::io::AsRawFd;
 use std::process::{exit, Stdio};
 use std::sync::{
@@ -28,6 +29,7 @@ use wayclip_core::{
 };
 
 const SAVE_COOLDOWN: Duration = Duration::from_secs(2);
+const MAX_PORTAL_RETRIES: u32 = 3;
 
 enum EncoderType {
     Nvidia,
@@ -54,7 +56,7 @@ pub async fn build_and_configure_pipeline(
     node_id: u32,
     ring_buffer: Arc<Mutex<RingBuffer>>,
     logger: &Logger,
-) -> Result<gst::Element, Box<dyn Error>> {
+) -> anyhow::Result<gst::Element> {
     let mut pipeline_parts = Vec::new();
     let has_audio = settings.include_bg_audio || settings.include_mic_audio;
     pipeline_parts.push("matroskamux name=mux ! appsink name=sink".to_string());
@@ -169,7 +171,8 @@ pub async fn build_and_configure_pipeline(
     let pipeline_str = pipeline_parts.join(" ");
 
     log_to!(logger, Info, [GST] => "Parsing pipeline: {}", pipeline_str);
-    let pipeline = gst::parse::launch(&pipeline_str).expect("Failed to parse pipeline");
+    let pipeline = gst::parse::launch(&pipeline_str)
+        .map_err(|e| anyhow::anyhow!("Failed to parse pipeline: {}", e))?;
 
     let pipeline_bin = pipeline
         .clone()
@@ -234,8 +237,108 @@ pub async fn build_and_configure_pipeline(
     Ok(pipeline)
 }
 
+async fn setup_screencast<'a>(
+    proxy: &'a Screencast<'a>,
+    token_file: &std::path::Path,
+    logger: &Logger,
+) -> Result<(Session<'a, Screencast<'a>>, u32, std::os::unix::io::OwnedFd), ashpd::Error> {
+    let restore_token = match read_to_string(token_file) {
+        Ok(token) => {
+            log_to!(logger, Info, [ASH] => "Loaded existing restore token from '{}'", token_file.display());
+            Some(token)
+        }
+        Err(e) => {
+            log_to!(logger, Warn, [ASH] => "No restore token found at '{}': {}", token_file.display(), e);
+            None
+        }
+    };
+
+    let mut retry_count = 0;
+    let source_type = SourceType::Monitor;
+    let mut last_error = None;
+
+    while retry_count < MAX_PORTAL_RETRIES {
+        log_to!(logger, Info, [ASH] => "Attempting to create session with source type: {:?}", source_type);
+        match proxy.create_session().await {
+            Ok(session) => {
+                log_to!(logger, Info, [ASH] => "Selecting screencast sources with restore token: {:?}", restore_token);
+                match proxy
+                    .select_sources(
+                        &session,
+                        CursorMode::Hidden,
+                        enumflags2::BitFlags::from(source_type),
+                        false,
+                        restore_token.as_deref(),
+                        PersistMode::Application,
+                    )
+                    .await
+                {
+                    Ok(_request) => {
+                        log_to!(logger, Info, [ASH] => "Starting screencast session");
+                        match proxy.start(&session, None).await {
+                            Ok(response) => {
+                                let response = response.response()?;
+                                let stream = response.streams().first().ok_or_else(|| {
+                                    ashpd::Error::Portal(ashpd::PortalError::Failed(
+                                        "No streams found in response".to_string(),
+                                    ))
+                                })?;
+                                let node_id = stream.pipe_wire_node_id();
+                                log_to!(logger, Info, [ASH] => "Streams: {:?}", stream);
+                                if stream.source_type() != Some(SourceType::Monitor) {
+                                    log_to!(logger, Warn, [ASH] => "Expected source type Monitor, got {:?}", stream.source_type());
+                                }
+
+                                if let Some(new_token) = response.restore_token() {
+                                    log_to!(logger, Info, [ASH] => "New restore token received, saving to '{}'", token_file.display());
+                                    if let Err(e) = write(token_file, new_token) {
+                                        log_to!(logger, Error, [ASH] => "Failed to save restore token to '{}': {}", token_file.display(), e);
+                                    } else {
+                                        log_to!(logger, Info, [ASH] => "Successfully saved restore token");
+                                    }
+                                } else {
+                                    log_to!(logger, Warn, [ASH] => "Portal did not provide a restore token for source type {:?}.", source_type);
+                                    log_to!(logger, Debug, [ASH] => "Response details: {:?}", response);
+                                }
+
+                                let pipewire_fd = proxy.open_pipe_wire_remote(&session).await?;
+                                log_to!(logger, Info, [ASH] => "Pipewire fd: {:?}", pipewire_fd.as_raw_fd());
+                                return Ok((session, node_id, pipewire_fd));
+                            }
+                            Err(e) => {
+                                retry_count += 1;
+                                last_error = Some(e);
+                                log_to!(logger, Error, [ASH] => "Failed to start screencast session (attempt {}/{}): {}", retry_count, MAX_PORTAL_RETRIES, last_error.as_ref().unwrap());
+                                tokio::time::sleep(Duration::from_millis(500)).await;
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        retry_count += 1;
+                        last_error = Some(e);
+                        log_to!(logger, Error, [ASH] => "Failed to select sources (attempt {}/{}): {}", retry_count, MAX_PORTAL_RETRIES, last_error.as_ref().unwrap());
+                        tokio::time::sleep(Duration::from_millis(500)).await;
+                    }
+                }
+            }
+            Err(e) => {
+                retry_count += 1;
+                last_error = Some(e);
+                log_to!(logger, Error, [ASH] => "Failed to create session (attempt {}/{}): {}", retry_count, MAX_PORTAL_RETRIES, last_error.as_ref().unwrap());
+                tokio::time::sleep(Duration::from_millis(500)).await;
+            }
+        }
+    }
+
+    Err(last_error.unwrap_or_else(|| {
+        ashpd::Error::Portal(ashpd::PortalError::Failed(format!(
+            "Failed to set up screencast after {MAX_PORTAL_RETRIES} retries",
+        )))
+    }))
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> anyhow::Result<()> {
     let settings = Settings::load().await?;
     let log_dir = "/tmp/wayclip";
     create_dir_all(log_dir).expect("Failed to create log directory");
@@ -259,6 +362,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
+    // Log the GUI socket path for debugging
+    log_to!(logger, Debug, [DAEMON] => "GUI socket path: {}", settings.gui_socket_path);
+
     send_status_to_gui(
         settings.gui_socket_path.clone(),
         String::from("Starting"),
@@ -273,41 +379,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let proxy = Screencast::new()
         .await
         .expect("Failed to create screencast proxy");
-    let session = proxy
-        .create_session()
-        .await
-        .expect("Failed to create screencast session");
-    proxy
-        .select_sources(
-            &session,
-            CursorMode::Hidden,
-            enumflags2::BitFlags::from(SourceType::Monitor),
-            false,
-            None,
-            PersistMode::ExplicitlyRevoked,
-        )
-        .await
-        .expect("Failed to select sources");
 
-    log_to!(logger, Info, [ASH] => "Starting screencast session");
-    let response = proxy
-        .start(&session, None)
-        .await
-        .expect("Failed to start screencast session")
-        .response()
-        .expect("Failed to get screencast response");
-    let stream = response
-        .streams()
-        .first()
-        .expect("No streams found in response");
-    let node_id = stream.pipe_wire_node_id();
-    log_to!(logger, Info, [ASH] => "Streams: {:?}", stream);
+    let token_dir = config_dir()
+        .ok_or_else(|| anyhow::anyhow!("Could not find config dir"))?
+        .join("wayclip");
+    let token_file = token_dir.join("portal-restore-token");
 
-    let pipewire_fd = proxy
-        .open_pipe_wire_remote(&session)
+    if let Err(e) = create_dir_all(&token_dir) {
+        log_to!(logger, Error, [ASH] => "Failed to create token directory '{}': {}", token_dir.display(), e);
+        return Err(e.into());
+    }
+
+    let (session, node_id, pipewire_fd) = setup_screencast(&proxy, &token_file, &logger)
         .await
-        .expect("Failed to open pipewire remote");
-    log_to!(logger, Info, [ASH] => "Pipewire fd: {:?}", pipewire_fd.as_raw_fd());
+        .map_err(|e| anyhow::anyhow!("Failed to set up screencast: {}", e))?;
 
     tokio::time::sleep(Duration::from_millis(1000)).await;
 
@@ -340,11 +425,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
             Err(err) => {
                 retry_count += 1;
-                log_to!(logger, Error, [GST] => "Pipeline state change failed (attempt {}/{}): {:?}. Retrying...", retry_count, max_retries, err);
+                log_to!(logger, Error, [GST] => "Pipeline state change failed (attempt {}/{}): {}. Retrying...", retry_count, max_retries, err);
                 if retry_count >= max_retries {
                     log_to!(logger, Error, [GST] => "Max retries exceeded. Shutting down.");
                     let _ = pipeline.set_state(gst::State::Null);
-                    return Err(Box::new(err) as Box<dyn Error>);
+                    return Err(anyhow::anyhow!("Pipeline state change failed: {}", err));
                 }
                 tokio::time::sleep(Duration::from_millis(500)).await;
             }
@@ -420,9 +505,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             log_to!(logger, Info, [UNIX] => "[JOB {}] Save command received, starting process.", job_id);
 
                             log_to!(logger, Info, [GST] => "[JOB {}] Stopping pipeline to save clip.", job_id);
-                            pipeline.set_state(gst::State::Null).map_err(|e| Box::new(e) as Box<dyn Error>)?;
+                            pipeline.set_state(gst::State::Null)?;
                             log_to!(logger, Info, [GST] => "[JOB {}] Pipeline stopped.", job_id);
-
 
                             let saved_chunks = {
                                 let mut rb = ring_buffer.lock().unwrap();
@@ -434,7 +518,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             let ffmpeg_logger = logger.clone();
                             tokio::spawn(async move {
                                 log_to!(ffmpeg_logger, Info, [FFMPEG] => "[JOB {}] Spawning to save {} Matroska chunks.", job_id, saved_chunks.len());
-
 
                                 if saved_chunks.is_empty() {
                                     log_to!(ffmpeg_logger, Warn, [FFMPEG] => "[JOB {}] No chunks in buffer. Aborting save.", job_id);
@@ -515,7 +598,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                 ring_buffer.clone(),
                                 &logger,
                             ).await?;
-                            pipeline.set_state(gst::State::Playing).map_err(|e| Box::new(e) as Box<dyn Error>)?;
+                            pipeline.set_state(gst::State::Playing)?;
                             tokio::spawn(handle_bus_messages(pipeline.clone().dynamic_cast::<gst::Pipeline>().unwrap(), logger.clone()));
                             log_to!(logger, Info, [GST] => "Pipeline restarted successfully.");
                             send_status_to_gui(settings.gui_socket_path.clone(), "Recording".into(), &logger);
