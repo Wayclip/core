@@ -16,7 +16,7 @@ use std::sync::{
     atomic::{AtomicBool, AtomicUsize, Ordering},
     Arc, Mutex,
 };
-use std::time::{Duration, Instant};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::UnixListener;
 use tokio::process::Command;
@@ -30,6 +30,7 @@ use wayclip_core::{
 
 const SAVE_COOLDOWN: Duration = Duration::from_secs(2);
 const MAX_PORTAL_RETRIES: u32 = 3;
+const LAST_SAVE_FILE: &str = "/tmp/wayclip_last_save";
 
 enum EncoderType {
     Nvidia,
@@ -356,9 +357,22 @@ async fn main() -> anyhow::Result<()> {
     );
     gst::init().expect("Failed to init gstreamer");
     if metadata(&settings.daemon_socket_path).is_ok() {
-        if let Err(e) = remove_file(&settings.daemon_socket_path) {
-            log_to!(logger, Error, [UNIX] => "Failed to remove existing daemon socket file: {}", e);
-            exit(1);
+        log_to!(logger, Warn, [UNIX] => "Stale socket file detected, attempting cleanup...");
+        for attempt in 1..=3 {
+            match remove_file(&settings.daemon_socket_path) {
+                Ok(_) => {
+                    log_to!(logger, Info, [UNIX] => "Socket file cleaned up successfully");
+                    break;
+                }
+                Err(e) if attempt < 3 => {
+                    log_to!(logger, Warn, [UNIX] => "Cleanup attempt {} failed: {}", attempt, e);
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                }
+                Err(e) => {
+                    log_to!(logger, Error, [UNIX] => "Failed to remove existing daemon socket file after 3 attempts: {}", e);
+                    exit(1);
+                }
+            }
         }
     }
 
@@ -476,7 +490,6 @@ async fn main() -> anyhow::Result<()> {
     });
 
     let job_id_counter = Arc::new(AtomicUsize::new(1));
-    let mut last_save_time = Instant::now() - SAVE_COOLDOWN;
     let mut term_signal =
         signal(SignalKind::terminate()).expect("Failed to install SIGTERM handler");
     loop {
@@ -493,14 +506,22 @@ async fn main() -> anyhow::Result<()> {
             Some(msg) = rx.recv() => {
                 match msg.as_str() {
                     "save" => {
-                        if last_save_time.elapsed() < SAVE_COOLDOWN {
-                            log_to!(logger, Warn, [UNIX] => "Ignoring save request: Cooldown active.");
-                            continue;
+                        if let Ok(contents) = tokio::fs::read_to_string(LAST_SAVE_FILE).await {
+                            if let Ok(last_save_epoch) = contents.trim().parse::<u64>() {
+                                let elapsed = SystemTime::now()
+                                    .duration_since(UNIX_EPOCH)?
+                                    .as_secs() - last_save_epoch;
+
+                                if elapsed < SAVE_COOLDOWN.as_secs() {
+                                    log_to!(logger, Warn, [UNIX] => "Global save cooldown active ({}s remaining)",
+                                        SAVE_COOLDOWN.as_secs() - elapsed);
+                                    continue;
+                                }
+                            }
                         }
                         send_status_to_gui(settings.gui_socket_path.clone(), String::from("Saving clip..."), &logger);
 
                         if is_saving.compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
-                            last_save_time = Instant::now();
                             let job_id = job_id_counter.fetch_add(1, Ordering::SeqCst);
                             log_to!(logger, Info, [UNIX] => "[JOB {}] Save command received, starting process.", job_id);
 
@@ -569,6 +590,8 @@ async fn main() -> anyhow::Result<()> {
                                 match ffmpeg_child.wait().await {
                                     Ok(status) if status.success() => {
                                         log_to!(ffmpeg_logger, Info, [FFMPEG] => "[JOB {}] Done! Saved to {:?}", job_id, output_filename);
+                                        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+                                        let _ = tokio::fs::write(LAST_SAVE_FILE, now.to_string()).await;
                                         let gui_path = settings_clone.gui_socket_path.clone();
                                         let ffmpeg_logger_clone = ffmpeg_logger.clone();
                                         tokio::spawn(async move {
