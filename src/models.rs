@@ -34,7 +34,7 @@ pub struct TierConfig {
     #[sqlx(rename = "max_storage_bytes")]
     pub max_storage_bytes: i64,
     pub stripe_price_id: Option<String>,
-    pub display_price: String,
+    pub display_price: Option<String>,
     pub display_frequency: Option<String>,
     pub description: Option<String>,
     pub display_features: Option<Vec<String>>,
