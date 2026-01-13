@@ -8,7 +8,6 @@ use uuid::Uuid;
 #[derive(Debug, Serialize, FromRow, Deserialize, Clone)]
 pub struct User {
     pub id: Uuid,
-    pub github_id: Option<i64>,
     pub username: String,
     pub email: Option<String>,
     pub avatar_url: Option<String>,
@@ -123,6 +122,7 @@ pub struct Clip {
     pub file_name: String,
     pub file_size: i64,
     pub public_url: String,
+    pub status: String,
     pub created_at: DateTime<Utc>,
 }
 
