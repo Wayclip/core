@@ -1,0 +1,340 @@
+[settings.api_enabled]
+key = "api.enabled"
+location = "api"
+field_name = "enabled"
+type = "bool"
+default = false
+introduced_in = "0.1.0"
+
+[settings.api_url]
+key = "api.url"
+location = "api"
+field_name = "url"
+type = "url"
+default = "https://api.wayclip.test"
+introduced_in = "0.1.0"
+
+[settings.recording_video_length]
+key = "recording.video.length"
+location = "recording.video"
+field_name = "length_seconds"
+type = "u64"
+default = 120
+introduced_in = "0.1.0"
+
+[settings.recording_video_resolution]
+key = "recording.video.resolution"
+location = "recording.video"
+field_name = "resolution"
+type = "resolution"
+default = "1920x1080"
+introduced_in = "0.1.0"
+
+[settings.recording_video_fps]
+key = "recording.video.fps"
+location = "recording.video"
+field_name = "fps"
+type = "fps"
+default = 60
+introduced_in = "0.1.0"
+
+[settings.recording_video_codec]
+key = "recording.video.codec"
+location = "recording.video"
+field_name = "codec"
+type = "video_codec"
+default = "Auto"
+introduced_in = "0.1.0"
+
+[settings.recording_video_bitrate]
+key = "recording.video.bitrate"
+location = "recording.video"
+field_name = "bitrate_kbps"
+type = "bitrate"
+default = 15000
+introduced_in = "0.1.0"
+
+[settings.recording_audio_codec]
+key = "recording.audio.codec"
+location = "recording.audio"
+field_name = "codec"
+type = "audio_codec"
+default = "Opus"
+introduced_in = "0.1.0"
+
+[settings.recording_audio_sample_rate]
+key = "recording.audio.sample_rate"
+location = "recording.audio"
+field_name = "sample_rate_hz"
+type = "sample_rate"
+default = 48000
+introduced_in = "0.1.0"
+
+[settings.recording_audio_microphone_level]
+key = "recording.audio.microphone.level"
+location = "recording.audio.microphone"
+field_name = "level"
+type = "audio_level"
+default = 1.0
+introduced_in = "0.1.0"
+
+[settings.recording_audio_microphone_enabled]
+key = "recording.audio.microphone.enabled"
+location = "recording.audio.microphone"
+field_name = "enabled"
+type = "bool"
+default = true
+introduced_in = "0.1.0"
+
+[settings.recording_audio_microphone_node_name]
+key = "recording.audio.microphone.node_name"
+location = "recording.audio.microphone"
+field_name = "node_name"
+type = "string"
+default = ""
+introduced_in = "0.1.0"
+
+[settings.recording_audio_background_level]
+key = "recording.audio.background.level"
+location = "recording.audio.background"
+field_name = "level"
+type = "audio_level"
+default = 0.75
+introduced_in = "0.1.0"
+
+[settings.recording_audio_background_enabled]
+key = "recording.audio.background.enabled"
+location = "recording.audio.background"
+field_name = "enabled"
+type = "bool"
+default = true
+introduced_in = "0.1.0"
+
+[settings.recording_audio_background_node_name]
+key = "recording.audio.background.node_name"
+location = "recording.audio.background"
+field_name = "node_name"
+type = "string"
+default = ""
+introduced_in = "0.1.0"
+
+[settings.output_name_format]
+key = "output.name_format"
+location = "output"
+field_name = "name_format"
+type = "string"
+default = "wayclip_{game}_%Y-%m-%d_%H-%M-%S"
+introduced_in = "0.1.0"
+
+[settings.output_video_format]
+key = "output.video_format"
+location = "output"
+field_name = "video_format"
+type = "video_format"
+default = "MKV"
+introduced_in = "0.1.0"
+
+[settings.output_clip_directory]
+key = "output.clip_directory"
+location = "output"
+field_name = "clip_directory"
+type = "directory"
+default = "~/Videos/wayclip/"
+introduced_in = "0.1.0"
+
+[settings.output_preview_directory]
+key = "output.preview_directory"
+location = "output"
+field_name = "preview_directory"
+type = "directory"
+default = "~/Videos/wayclip/"
+introduced_in = "0.1.0"
+
+[settings.output_metadata_directory]
+key = "output.metadata_directory"
+location = "output"
+field_name = "metadata_directory"
+type = "directory"
+default = "~/Videos/wayclip/"
+introduced_in = "0.1.0"
+
+[settings.output_limit_max_size_mb]
+key = "output.limit.max_size_mb"
+location = "output.limit"
+field_name = "max_size_mb"
+type = "u64"
+default = 0
+introduced_in = "0.1.2"
+
+[settings.output_limit_max_clips]
+key = "output.limit.max_clips"
+location = "output.limit"
+field_name = "max_clips"
+type = "u64"
+default = 0
+introduced_in = "0.1.2"
+
+[settings.output_limit_prune]
+key = "output.limit.prune"
+location = "output.limit"
+field_name = "prune"
+type = "prune"
+default = "Disabled"
+introduced_in = "0.1.2"
+
+[settings.shortcuts_save_clip]
+key = "shortcuts.save_clip"
+location = "shortcuts"
+field_name = "save_clip"
+type = "key_combo"
+default = "ALT+c"
+introduced_in = "0.1.0"
+
+[settings.game_discovery_enabled]
+key = "game_discovery.enabled"
+location = "game_discovery"
+field_name = "enabled"
+type = "bool"
+default = true
+introduced_in = "0.1.0"
+
+[settings.game_discovery_polling_interval_s]
+key = "game_discovery.polling_interval_s"
+location = "game_discovery"
+field_name = "poll_interval_s"
+type = "u64"
+default = 20
+introduced_in = "0.1.0"
+
+[settings.game_discovery_discord_rich_presence]
+key = "game_discovery.discord_rich_presence"
+location = "game_discovery"
+field_name = "discord_rich_presence"
+type = "bool"
+default = true
+introduced_in = "0.1.1"
+
+[settings.notification_sounds_on_save_error]
+key = "notification.sounds.on_save_error"
+location = "notification.sounds"
+field_name = "on_save_error"
+type = "bool"
+default = true
+introduced_in = "0.1.0"
+
+[settings.notification_sounds_on_save_success]
+key = "notification.sounds.on_save_success"
+location = "notification.sounds"
+field_name = "on_save_success"
+type = "bool"
+default = true
+introduced_in = "0.1.0"
+
+[settings.notification_messages_on_save_error]
+key = "notification.messages.on_save_error"
+location = "notification.message"
+field_name = "on_save_error"
+type = "bool"
+default = true
+introduced_in = "0.1.0"
+
+[settings.notification_messages_on_save_success]
+key = "notification.messages.on_save_success"
+location = "notification.message"
+field_name = "on_save_success"
+type = "bool"
+default = true
+introduced_in = "0.1.0"
+
+[settings.notification_messages_on_daemon_start]
+key = "notification.messages.on_daemon_start"
+location = "notification.message"
+field_name = "on_daemon_start"
+type = "bool"
+default = false
+introduced_in = "0.1.0"
+
+[settings.notification_messages_on_daemon_stop]
+key = "notification.messages.on_daemon_stop"
+location = "notification.message"
+field_name = "on_daemon_stop"
+type = "bool"
+default = false
+introduced_in = "0.1.0"
+
+[settings.tray_enabled]
+key = "tray.enabled"
+location = "tray"
+field_name = "enabled"
+type = "bool"
+default = true
+introduced_in = "0.1.2"
+
+[settings.tray_show_logo]
+key = "tray.show_logo"
+location = "tray"
+field_name = "show_logo"
+type = "bool"
+default = true
+introduced_in = "0.1.2"
+
+[settings.tray_show_save_clip]
+key = "tray.show_save_clip"
+location = "tray"
+field_name = "show_save_clip"
+type = "bool"
+default = true
+introduced_in = "0.1.2"
+
+[settings.tray_show_restart]
+key = "tray.show_restart"
+location = "tray"
+field_name = "show_restart"
+type = "bool"
+default = true
+introduced_in = "0.1.2"
+
+[settings.tray_show_exit]
+key = "tray.show_exit"
+location = "tray"
+field_name = "show_exit"
+type = "bool"
+default = true
+introduced_in = "0.1.2"
+
+[settings.tray_show_status]
+key = "tray.show_status"
+location = "tray"
+field_name = "show_status"
+type = "bool"
+default = true
+introduced_in = "0.1.2"
+
+[settings.tray_show_stats]
+key = "tray.show_stats"
+location = "tray"
+field_name = "show_stats"
+type = "bool"
+default = true
+introduced_in = "0.1.2"
+
+[[versions]]
+version = "0.1.1"
+changes = [
+  { action = "insert", setting_id = "game_discovery_discord_rich_presence" },
+]
+
+[[versions]]
+version = "0.1.2"
+changes = [
+  { action = "insert", setting_id = "output_limit_max_size_mb" },
+  { action = "insert", setting_id = "output_limit_max_clips" },
+  { action = "insert", setting_id = "output_limit_prune" },
+  { action = "insert", setting_id = "tray_enabled" },
+  { action = "insert", setting_id = "tray_show_logo" },
+  { action = "insert", setting_id = "tray_show_save_clip" },
+  { action = "insert", setting_id = "tray_show_restart" },
+  { action = "insert", setting_id = "tray_show_exit" },
+  { action = "insert", setting_id = "tray_show_status" },
+  { action = "insert", setting_id = "tray_show_stats" },
+]

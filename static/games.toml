@@ -1,0 +1,1119 @@
+[[game]]
+variant = "TheFinals"
+slug = "the_finals"
+display_name = "The Finals"
+steam_appids = [2073850]
+titles = ["the finals"]
+processes = ["discovery.exe", "discovery"]
+
+[[game]]
+variant = "CounterStrike2"
+slug = "counter_strike_2"
+display_name = "Counter-Strike 2"
+steam_appids = [730]
+titles = [
+  "counter-strike 2",
+  "counter-strike: global offensive",
+  "cs2",
+  "csgo",
+  "cs 2",
+  "counter strike 2",
+  "counter strike: global offensive",
+]
+processes = ["cs2", "cs2.exe"]
+
+[[game]]
+variant = "Dota2"
+slug = "dota_2"
+display_name = "Dota 2"
+steam_appids = [570]
+titles = ["dota 2", "dota", "dota2"]
+processes = ["dota2", "dota2.exe"]
+
+[[game]]
+variant = "Pubg"
+slug = "pubg"
+display_name = "PUBG: BATTLEGROUNDS"
+steam_appids = [578080]
+titles = [
+  "pubg: battlegrounds",
+  "playerunknown's battlegrounds",
+  "pubg",
+  "pubg battlegrounds",
+]
+processes = ["tslgame.exe", "pubg.exe", "tslgame", "pubg"]
+
+[[game]]
+variant = "ApexLegends"
+slug = "apex_legends"
+display_name = "Apex Legends"
+steam_appids = [1172470]
+titles = ["apex legends", "apex", "apex legends™"]
+processes = ["r5apex.exe", "r5apex"]
+
+[[game]]
+variant = "GrandTheftAutoV"
+slug = "grand_theft_auto_v"
+display_name = "Grand Theft Auto V"
+steam_appids = [271590]
+titles = [
+  "grand theft auto v",
+  "gta v",
+  "gta5",
+  "gta 5",
+  "grand theft auto 5",
+  "gtav",
+]
+processes = ["gta5.exe", "gtav.exe", "gta5", "gtav"]
+
+[[game]]
+variant = "Rust"
+slug = "rust"
+display_name = "Rust"
+steam_appids = [252490]
+titles = ["rust"]
+processes = ["rustclient.exe", "rustclient", "rust"]
+
+[[game]]
+variant = "RainbowSixSiege"
+slug = "rainbow_six_siege"
+display_name = "Tom Clancy's Rainbow Six Siege"
+steam_appids = [359550]
+titles = [
+  "tom clancy's rainbow six siege",
+  "rainbow six siege",
+  "r6",
+  "r6s",
+  "rainbow six",
+]
+processes = ["rainbowsix.exe", "rainbowsix", "rainbowsix_vulkan.exe"]
+
+[[game]]
+variant = "TeamFortress2"
+slug = "team_fortress_2"
+display_name = "Team Fortress 2"
+steam_appids = [440]
+titles = ["team fortress 2", "tf2"]
+processes = ["tf_linux64", "hl2_linux", "tf.exe", "tf"]
+
+[[game]]
+variant = "Left4Dead2"
+slug = "left_4_dead_2"
+display_name = "Left 4 Dead 2"
+steam_appids = [550]
+titles = ["left 4 dead 2", "l4d2", "left4dead2"]
+processes = ["left4dead2.exe", "left4dead2_linux", "left4dead2"]
+
+[[game]]
+variant = "Portal2"
+slug = "portal_2"
+display_name = "Portal 2"
+steam_appids = [620]
+titles = ["portal 2", "portal2"]
+processes = ["portal2.exe", "portal2_linux", "portal2"]
+
+[[game]]
+variant = "HalfLife2"
+slug = "half_life_2"
+display_name = "Half-Life 2"
+steam_appids = [220]
+titles = ["half-life 2", "hl2", "half life 2"]
+processes = ["hl2.exe", "hl2"]
+
+[[game]]
+variant = "EldenRing"
+slug = "elden_ring"
+display_name = "Elden Ring"
+steam_appids = [1245620]
+titles = ["elden ring", "eldenring"]
+processes = ["eldenring.exe", "eldenring", "start_protected_game.exe"]
+
+[[game]]
+variant = "DarkSoulsIII"
+slug = "dark_souls_iii"
+display_name = "Dark Souls III"
+steam_appids = [374320]
+titles = ["dark souls iii", "dark souls 3", "ds3"]
+processes = ["darksoulsiii.exe", "darksoulsiii"]
+
+[[game]]
+variant = "BaldursGate3"
+slug = "baldurs_gate_3"
+display_name = "Baldur's Gate 3"
+steam_appids = [1086940]
+titles = ["baldur's gate 3", "bg3", "baldurs gate 3"]
+processes = ["bg3.exe", "bg3_dx11.exe", "bg3", "bg3_dx11"]
+
+[[game]]
+variant = "Cyberpunk2077"
+slug = "cyberpunk_2077"
+display_name = "Cyberpunk 2077"
+steam_appids = [1091500]
+titles = ["cyberpunk 2077", "cyberpunk"]
+processes = ["cyberpunk2077.exe", "cyberpunk2077"]
+
+[[game]]
+variant = "TheWitcher3"
+slug = "the_witcher_3"
+display_name = "The Witcher 3: Wild Hunt"
+steam_appids = [292030]
+titles = ["the witcher 3: wild hunt", "the witcher 3", "witcher 3"]
+processes = ["witcher3.exe", "witcher3"]
+
+[[game]]
+variant = "Terraria"
+slug = "terraria"
+display_name = "Terraria"
+steam_appids = [105600]
+titles = ["terraria"]
+processes = [
+  "terraria.exe",
+  "terraria.bin.x86_64",
+  "terraria.bin.x86",
+  "terraria",
+]
+
+[[game]]
+variant = "StardewValley"
+slug = "stardew_valley"
+display_name = "Stardew Valley"
+steam_appids = [413150]
+titles = ["stardew valley", "stardew"]
+processes = ["stardewvalley", "stardewvalley.exe", "stardew valley"]
+
+[[game]]
+variant = "Minecraft"
+slug = "minecraft"
+display_name = "Minecraft"
+titles = ["minecraft", "minecraft: java edition", "minecraft launcher"]
+processes = [
+  "minecraft-launcher",
+  "minecraft.exe",
+  "java",
+  "javaw",
+  "javaw.exe",
+]
+prefixes = ["minecraft"]
+
+[[game]]
+variant = "Factorio"
+slug = "factorio"
+display_name = "Factorio"
+steam_appids = [427520]
+titles = ["factorio"]
+processes = ["factorio", "factorio.exe"]
+
+[[game]]
+variant = "Satisfactory"
+slug = "satisfactory"
+display_name = "Satisfactory"
+steam_appids = [526870]
+titles = ["satisfactory"]
+processes = [
+  "factorygame.exe",
+  "factorygame-win64-shipping.exe",
+  "factorygame-linux-shipping.exe",
+  "factorygame",
+  "factorygame-linux-shipping",
+]
+
+[[game]]
+variant = "Hades"
+slug = "hades"
+display_name = "Hades"
+steam_appids = [1145360, 1145350]
+titles = ["hades", "hades ii", "hades 2"]
+processes = ["hades.exe", "hades2.exe", "hades", "hades2"]
+
+[[game]]
+variant = "HollowKnight"
+slug = "hollow_knight"
+display_name = "Hollow Knight"
+steam_appids = [367520]
+titles = ["hollow knight", "hollow knight: silksong", "silksong"]
+processes = [
+  "hollow_knight.exe",
+  "hollowknight.exe",
+  "hollow_knight.x86_64",
+  "hollow_knight.x86",
+  "hollow_knight",
+  "hollowknight",
+]
+
+[[game]]
+variant = "DeepRockGalactic"
+slug = "deep_rock_galactic"
+display_name = "Deep Rock Galactic"
+steam_appids = [548430]
+titles = ["deep rock galactic", "drg"]
+processes = [
+  "fsd-win64-shipping.exe",
+  "fsd.exe",
+  "fsd-linux-shipping.exe",
+  "fsd",
+  "fsd-linux-shipping",
+]
+
+[[game]]
+variant = "Warframe"
+slug = "warframe"
+display_name = "Warframe"
+steam_appids = [230410]
+titles = ["warframe"]
+processes = ["warframe.x64.exe", "warframe"]
+
+[[game]]
+variant = "Destiny2"
+slug = "destiny_2"
+display_name = "Destiny 2"
+steam_appids = [1085660]
+titles = ["destiny 2", "destiny2"]
+processes = ["destiny2.exe", "destiny2"]
+
+[[game]]
+variant = "Fortnite"
+slug = "fortnite"
+display_name = "Fortnite"
+titles = ["fortnite"]
+processes = [
+  "fortniteclient-win64-shipping.exe",
+  "fortniteclient-linux-shipping.exe",
+  "fortniteclient-linux-shipping",
+  "fortniteclient",
+]
+
+[[game]]
+variant = "LeagueOfLegends"
+slug = "league_of_legends"
+display_name = "League of Legends"
+titles = ["league of legends", "lol", "league"]
+processes = [
+  "league of legends.exe",
+  "leagueclient.exe",
+  "league of legends",
+  "leagueclient",
+]
+
+[[game]]
+variant = "Overwatch2"
+slug = "overwatch_2"
+display_name = "Overwatch 2"
+steam_appids = [2357570]
+titles = ["overwatch", "overwatch 2", "ow", "ow2"]
+processes = ["overwatch.exe", "overwatch"]
+
+[[game]]
+variant = "WorldOfWarcraft"
+slug = "world_of_warcraft"
+display_name = "World of Warcraft"
+titles = [
+  "world of warcraft",
+  "wow",
+  "world of warcraft classic",
+  "wow classic",
+]
+processes = [
+  "wow.exe",
+  "wowclassic.exe",
+  "wow",
+  "wowclassic",
+  "wowt.exe",
+  "wowb.exe",
+]
+
+[[game]]
+variant = "PathOfExile"
+slug = "path_of_exile"
+display_name = "Path of Exile"
+steam_appids = [238960]
+titles = ["path of exile", "poe"]
+processes = [
+  "pathofexile.exe",
+  "pathofexilesteam.exe",
+  "pathofexile",
+  "pathofexile_x64",
+]
+
+[[game]]
+variant = "PathOfExile2"
+slug = "path_of_exile_2"
+display_name = "Path of Exile 2"
+steam_appids = [2694490]
+titles = ["path of exile 2", "poe2"]
+processes = ["pathofexile2.exe", "pathofexile2_kg.exe", "pathofexile2"]
+
+[[game]]
+variant = "DiabloIV"
+slug = "diablo_iv"
+display_name = "Diablo IV"
+steam_appids = [2344520]
+titles = ["diablo iv", "diablo 4", "d4"]
+processes = ["diablo iv.exe", "diabloiv.exe", "diablo iv", "diabloiv"]
+
+[[game]]
+variant = "SeaOfThieves"
+slug = "sea_of_thieves"
+display_name = "Sea of Thieves"
+steam_appids = [1172620]
+titles = ["sea of thieves", "sot"]
+processes = ["seaofthieves.exe", "seaofthieves"]
+
+[[game]]
+variant = "NoMansSky"
+slug = "no_mans_sky"
+display_name = "No Man's Sky"
+steam_appids = [275850]
+titles = ["no man's sky", "nms", "no mans sky"]
+processes = ["nms.exe", "nms"]
+
+[[game]]
+variant = "Subnautica"
+slug = "subnautica"
+display_name = "Subnautica"
+steam_appids = [264710]
+titles = ["subnautica", "subnautica: below zero"]
+processes = ["subnautica.exe", "subnautica", "subnauticazero.exe"]
+
+[[game]]
+variant = "ArkSurvivalEvolved"
+slug = "ark_survival_evolved"
+display_name = "ARK: Survival Evolved"
+steam_appids = [346110, 2390390]
+titles = [
+  "ark: survival evolved",
+  "ark survival evolved",
+  "ark",
+  "ark: survival ascended",
+]
+processes = [
+  "shootergame.exe",
+  "arksurvivalevolved.exe",
+  "shootergame",
+  "arksurvivalevolved",
+  "shootergameserver",
+  "arkascended.exe",
+]
+
+[[game]]
+variant = "RocketLeague"
+slug = "rocket_league"
+display_name = "Rocket League"
+steam_appids = [252950]
+titles = ["rocket league", "rl"]
+processes = ["rocketleague.exe", "rocketleague"]
+
+[[game]]
+variant = "FallGuys"
+slug = "fall_guys"
+display_name = "Fall Guys"
+steam_appids = [1097150]
+titles = ["fall guys", "fall guys: ultimate knockout"]
+processes = [
+  "fallguys_client.exe",
+  "fallguys.exe",
+  "fallguys_client",
+  "fallguys",
+]
+
+[[game]]
+variant = "AmongUs"
+slug = "among_us"
+display_name = "Among Us"
+steam_appids = [945360]
+titles = ["among us"]
+processes = ["amongus.exe", "among us.exe", "amongus", "among us"]
+
+[[game]]
+variant = "ItTakesTwo"
+slug = "it_takes_two"
+display_name = "It Takes Two"
+steam_appids = [1426210]
+titles = ["it takes two"]
+processes = ["takethis.exe", "it takes two.exe", "takethis", "it takes two"]
+
+[[game]]
+variant = "MonsterHunterWorld"
+slug = "monster_hunter_world"
+display_name = "Monster Hunter: World"
+steam_appids = [582010]
+titles = ["monster hunter: world", "monster hunter world", "mhw"]
+processes = ["monsterhunterworld.exe", "monsterhunterworld"]
+
+[[game]]
+variant = "Palworld"
+slug = "palworld"
+display_name = "Palworld"
+steam_appids = [1623730]
+titles = ["palworld"]
+processes = [
+  "palworld.exe",
+  "palworld-win64-shipping.exe",
+  "palworld-linux-shipping.exe",
+  "palworld-linux-shipping",
+  "palworld",
+]
+
+[[game]]
+variant = "Helldivers2"
+slug = "helldivers_2"
+display_name = "Helldivers 2"
+steam_appids = [553850]
+titles = ["helldivers 2", "helldivers", "hd2"]
+processes = ["helldivers2.exe", "helldivers2"]
+
+[[game]]
+variant = "LethalCompany"
+slug = "lethal_company"
+display_name = "Lethal Company"
+steam_appids = [1966720]
+titles = ["lethal company"]
+processes = [
+  "lethal company.exe",
+  "lethalcompany.exe",
+  "lethal company",
+  "lethalcompany",
+]
+
+[[game]]
+variant = "EscapeFromTarkov"
+slug = "escape_from_tarkov"
+display_name = "Escape from Tarkov"
+titles = ["escape from tarkov", "tarkov", "eft"]
+processes = [
+  "escapefromtarkov.exe",
+  "escapefromtarkov",
+  "escapefromtarkov_be",
+  "escapefromtarkov_be.exe",
+]
+
+[[game]]
+variant = "Squad"
+slug = "squad"
+display_name = "Squad"
+steam_appids = [393380]
+titles = ["squad"]
+processes = [
+  "squadgame.exe",
+  "squadgame-linux-shipping.exe",
+  "squadgame",
+  "squadgame-linux-shipping",
+]
+
+[[game]]
+variant = "Arma3"
+slug = "arma_3"
+display_name = "Arma 3"
+steam_appids = [107410]
+titles = ["arma 3", "arma"]
+processes = ["arma3.exe", "arma3_x64.exe", "arma3", "arma3_x64"]
+
+[[game]]
+variant = "DayZ"
+slug = "dayz"
+display_name = "DayZ"
+steam_appids = [221100]
+titles = ["dayz"]
+processes = [
+  "dayzsa_x64.exe",
+  "dayz_x64.exe",
+  "dayzsa_x64",
+  "dayz_x64",
+  "dayz",
+  "dayzserver_x64",
+]
+
+[[game]]
+variant = "InsurgencySandstorm"
+slug = "insurgency_sandstorm"
+display_name = "Insurgency: Sandstorm"
+steam_appids = [581320]
+titles = ["insurgency: sandstorm", "insurgency sandstorm", "insurgency"]
+processes = [
+  "insurgencysandstorm.exe",
+  "insurgency.exe",
+  "insurgencysandstorm",
+  "insurgency",
+]
+
+[[game]]
+variant = "KillingFloor2"
+slug = "killing_floor_2"
+display_name = "Killing Floor 2"
+steam_appids = [232090]
+titles = ["killing floor 2", "kf2"]
+processes = [
+  "kf2.exe",
+  "killingfloor2.exe",
+  "kf2",
+  "killingfloor2",
+  "kf2server",
+]
+
+[[game]]
+variant = "Valheim"
+slug = "valheim"
+display_name = "Valheim"
+steam_appids = [892970]
+titles = ["valheim"]
+processes = ["valheim.exe", "valheim.x86_64", "valheim.x86", "valheim"]
+
+[[game]]
+variant = "SeaOfStars"
+slug = "sea_of_stars"
+display_name = "Sea of Stars"
+steam_appids = [1244090]
+titles = ["sea of stars"]
+processes = ["sea of stars.exe", "seaofstars.exe", "sea of stars", "seaofstars"]
+
+[[game]]
+variant = "Ets2"
+slug = "ets2"
+display_name = "Euro Truck Simulator 2"
+steam_appids = [227300]
+titles = [
+  "euro truck simulator 2",
+  "ets2",
+  "euro truck simulator",
+  "euro truck simulator 2 multiplayer",
+]
+processes = ["eurotrucks2.exe", "eurotrucks2"]
+
+[[game]]
+variant = "MarvelRivals"
+slug = "marvel_rivals"
+display_name = "Marvel Rivals"
+steam_appids = [2767030]
+titles = ["marvel rivals"]
+processes = [
+  "marvel-win64-shipping.exe",
+  "marvel-win64-shipping",
+  "marvelrivals",
+  "marvel.exe",
+  "marvel",
+  "marvelgame.exe",
+  "marvelgame",
+]
+
+[[game]]
+variant = "BlackMythWukong"
+slug = "black_myth_wukong"
+display_name = "Black Myth: Wukong"
+steam_appids = [2358720]
+titles = ["black myth: wukong", "black myth wukong", "wukong"]
+processes = ["b1-win64-shipping.exe", "b1-win64-shipping", "b1.exe", "b1"]
+
+[[game]]
+variant = "Starfield"
+slug = "starfield"
+display_name = "Starfield"
+steam_appids = [1716740]
+titles = ["starfield"]
+processes = ["starfield.exe", "starfield"]
+
+[[game]]
+variant = "RedDeadRedemption2"
+slug = "red_dead_redemption_2"
+display_name = "Red Dead Redemption 2"
+steam_appids = [1174180]
+titles = ["red dead redemption 2", "rdr2"]
+processes = ["rdr2.exe", "rdr2"]
+
+[[game]]
+variant = "CitiesSkylines2"
+slug = "cities_skylines_2"
+display_name = "Cities: Skylines II"
+steam_appids = [949230]
+titles = ["cities: skylines ii", "cities skylines 2", "cities: skylines 2"]
+processes = ["cities2.exe", "cities2"]
+
+[[game]]
+variant = "CivilizationVI"
+slug = "civilization_vi"
+display_name = "Sid Meier's Civilization VI"
+steam_appids = [289070]
+titles = ["sid meier's civilization vi", "civilization vi", "civ 6", "civ6"]
+processes = ["civilizationvi.exe", "civ6.exe", "civilizationvi", "civ6"]
+
+[[game]]
+variant = "FootballManager"
+slug = "football_manager"
+display_name = "Football Manager"
+steam_appids = [2252570]
+titles = ["football manager 2024", "football manager", "fm24", "fm"]
+processes = ["fm24.exe", "fm.exe", "fm24", "fm"]
+
+[[game]]
+variant = "EaSportsFc"
+slug = "ea_sports_fc"
+display_name = "EA Sports FC"
+steam_appids = [2195250]
+titles = [
+  "ea sports fc 24",
+  "ea sports fc 25",
+  "fc 24",
+  "fc 25",
+  "fc24",
+  "fc25",
+]
+processes = ["fc24.exe", "fc25.exe", "fc24", "fc25"]
+
+[[game]]
+variant = "CallOfDutyWarzone"
+slug = "call_of_duty_warzone"
+display_name = "Call of Duty: Warzone"
+steam_appids = [269210, 1938090]
+titles = ["call of duty: warzone", "warzone", "cod warzone"]
+processes = ["cod.exe", "warzone.exe", "cod", "warzone", "modernwarfare.exe"]
+
+[[game]]
+variant = "CallOfDutyModernWarfare3"
+slug = "call_of_duty_modern_warfare_3"
+display_name = "Call of Duty: Modern Warfare III"
+titles = [
+  "call of duty: modern warfare iii",
+  "modern warfare 3",
+  "mw3",
+  "cod mw3",
+]
+processes = ["cod23-cod.exe", "mw3.exe", "mw3"]
+
+[[game]]
+variant = "CallOfDutyBlackOps6"
+slug = "call_of_duty_black_ops_6"
+display_name = "Call of Duty: Black Ops 6"
+titles = ["call of duty: black ops 6", "black ops 6", "bo6", "cod bo6"]
+processes = ["cod24-cod.exe", "bo6.exe", "bo6"]
+
+[[game]]
+variant = "Battlefield2042"
+slug = "battlefield_2042"
+display_name = "Battlefield 2042"
+steam_appids = [1517290]
+titles = ["battlefield 2042", "bf2042", "battlefield"]
+processes = ["bf2042.exe", "bf2042"]
+
+[[game]]
+variant = "Payday3"
+slug = "payday_3"
+display_name = "Payday 3"
+steam_appids = [1272080]
+titles = ["payday 3", "payday3"]
+processes = [
+  "payday3.exe",
+  "payday3",
+  "payday3-win64-shipping.exe",
+  "payday3-win64-shipping",
+]
+
+[[game]]
+variant = "RiskOfRain2"
+slug = "risk_of_rain_2"
+display_name = "Risk of Rain 2"
+steam_appids = [2519060]
+titles = ["risk of rain 2", "ror2"]
+processes = ["risk of rain 2.exe", "riskofrain2.exe", "riskofrain2"]
+
+[[game]]
+variant = "VampireSurvivors"
+slug = "vampire_survivors"
+display_name = "Vampire Survivors"
+steam_appids = [1794680]
+titles = ["vampire survivors"]
+processes = ["vampiresurvivors.exe", "vampiresurvivors"]
+
+[[game]]
+variant = "SonsOfTheForest"
+slug = "sons_of_the_forest"
+display_name = "Sons of the Forest"
+steam_appids = [1326470]
+titles = ["sons of the forest"]
+processes = ["sonsoftheforest.exe", "sonsoftheforest"]
+
+[[game]]
+variant = "TheForest"
+slug = "the_forest"
+display_name = "The Forest"
+steam_appids = [242760]
+titles = ["the forest"]
+processes = ["theforest.exe", "theforest"]
+
+[[game]]
+variant = "GreenHell"
+slug = "green_hell"
+display_name = "Green Hell"
+steam_appids = [815370]
+titles = ["green hell"]
+processes = ["greenhell.exe", "greenhell"]
+
+[[game]]
+variant = "Phasmophobia"
+slug = "phasmophobia"
+display_name = "Phasmophobia"
+steam_appids = [739630]
+titles = ["phasmophobia"]
+processes = ["phasmophobia.exe", "phasmophobia"]
+
+[[game]]
+variant = "Repo"
+slug = "repo"
+display_name = "R.E.P.O."
+steam_appids = [2415100]
+titles = ["r.e.p.o.", "repo", "r.e.p.o"]
+processes = ["repo.exe", "repo"]
+
+[[game]]
+variant = "Grounded"
+slug = "grounded"
+display_name = "Grounded"
+steam_appids = [962130]
+titles = ["grounded"]
+processes = ["grounded.exe", "maine.exe", "grounded"]
+
+[[game]]
+variant = "VRising"
+slug = "v_rising"
+display_name = "V Rising"
+steam_appids = [1604030]
+titles = ["v rising", "vrising"]
+processes = ["vrising.exe", "vrisingserver.exe", "vrising"]
+
+[[game]]
+variant = "CoreKeeper"
+slug = "core_keeper"
+display_name = "Core Keeper"
+steam_appids = [1621690]
+titles = ["core keeper"]
+processes = ["corekeeper.exe", "corekeeper"]
+
+[[game]]
+variant = "ProjectZomboid"
+slug = "project_zomboid"
+display_name = "Project Zomboid"
+steam_appids = [108600]
+titles = ["project zomboid", "zomboid"]
+processes = [
+  "projectzomboid64.exe",
+  "zomboid.exe",
+  "projectzomboid64",
+  "zomboid",
+  "projectzomboid.exe",
+  "projectzomboid",
+]
+
+[[game]]
+variant = "Enshrouded"
+slug = "enshrouded"
+display_name = "Enshrouded"
+steam_appids = [1203620]
+titles = ["enshrouded"]
+processes = ["enshrouded.exe", "enshrouded"]
+
+[[game]]
+variant = "SlayTheSpire"
+slug = "slay_the_spire"
+display_name = "Slay the Spire"
+steam_appids = [646570]
+titles = ["slay the spire"]
+processes = ["slaythespire.exe", "slaythespire"]
+
+[[game]]
+variant = "Balatro"
+slug = "balatro"
+display_name = "Balatro"
+steam_appids = [2379780]
+titles = ["balatro"]
+processes = ["balatro.exe", "balatro"]
+
+[[game]]
+variant = "WarhammerDarktide"
+slug = "warhammer_darktide"
+display_name = "Warhammer 40,000: Darktide"
+steam_appids = [1361210]
+titles = ["warhammer 40,000: darktide", "warhammer 40000: darktide", "darktide"]
+processes = ["darktide.exe", "darktide"]
+
+[[game]]
+variant = "Remnant2"
+slug = "remnant_2"
+display_name = "Remnant 2"
+steam_appids = [1282100]
+titles = ["remnant 2", "remnant ii"]
+processes = [
+  "remnant2.exe",
+  "remnant2",
+  "remnant2-win64-shipping.exe",
+  "remnant2-win64-shipping",
+]
+
+[[game]]
+variant = "LiesOfP"
+slug = "lies_of_p"
+display_name = "Lies of P"
+steam_appids = [1627720]
+titles = ["lies of p"]
+processes = [
+  "liesofp.exe",
+  "liesofp",
+  "liesofp-win64-shipping.exe",
+  "liesofp-win64-shipping",
+]
+
+[[game]]
+variant = "Sekiro"
+slug = "sekiro"
+display_name = "Sekiro: Shadows Die Twice"
+steam_appids = [814380]
+titles = ["sekiro: shadows die twice", "sekiro"]
+processes = ["sekiro.exe", "sekiro"]
+
+[[game]]
+variant = "Skyrim"
+slug = "skyrim"
+display_name = "The Elder Scrolls V: Skyrim"
+steam_appids = [489830, 72850]
+titles = ["the elder scrolls v: skyrim", "skyrim", "skyrim special edition"]
+processes = ["skyrimse.exe", "skyrim.exe", "skyrimse", "skyrim"]
+
+[[game]]
+variant = "Fallout4"
+slug = "fallout_4"
+display_name = "Fallout 4"
+steam_appids = [377160]
+titles = ["fallout 4"]
+processes = ["fallout4.exe", "fallout4"]
+
+[[game]]
+variant = "Fallout76"
+slug = "fallout_76"
+display_name = "Fallout 76"
+steam_appids = [1151340]
+titles = ["fallout 76", "fallout76"]
+processes = ["fallout76.exe", "fallout76"]
+
+[[game]]
+variant = "Kenshi"
+slug = "kenshi"
+display_name = "Kenshi"
+steam_appids = [233860]
+titles = ["kenshi"]
+processes = ["kenshi_x64.exe", "kenshi.exe", "kenshi_x64", "kenshi"]
+
+[[game]]
+variant = "RimWorld"
+slug = "rimworld"
+display_name = "RimWorld"
+steam_appids = [294100]
+titles = ["rimworld"]
+processes = [
+  "rimworldwin64.exe",
+  "rimworldlinux",
+  "rimworldwin64",
+  "rimworld.exe",
+  "rimworld",
+]
+
+[[game]]
+variant = "OxygenNotIncluded"
+slug = "oxygen_not_included"
+display_name = "Oxygen Not Included"
+steam_appids = [457140]
+titles = ["oxygen not included", "oni"]
+processes = ["oxygennotincluded.exe", "oni.exe", "oxygennotincluded", "oni"]
+
+[[game]]
+variant = "CultOfTheLamb"
+slug = "cult_of_the_lamb"
+display_name = "Cult of the Lamb"
+steam_appids = [1313140]
+titles = ["cult of the lamb"]
+processes = ["cotl.exe", "cotl_release.exe", "cotl", "cotl_release"]
+
+[[game]]
+variant = "DontStarveTogether"
+slug = "dont_starve_together"
+display_name = "Don't Starve Together"
+steam_appids = [322330]
+titles = ["don't starve together", "dont starve together", "dst"]
+processes = ["dontstarvetogether.exe", "dontstarvetogether", "dst.exe", "dst"]
+
+[[game]]
+variant = "Raft"
+slug = "raft"
+display_name = "Raft"
+steam_appids = [648800]
+titles = ["raft"]
+processes = ["raft.exe", "raft"]
+
+[[game]]
+variant = "ReadyOrNot"
+slug = "ready_or_not"
+display_name = "Ready or Not"
+steam_appids = [1144200]
+titles = ["ready or not"]
+processes = [
+  "readyornot.exe",
+  "readyornot",
+  "readyornot-win64-shipping.exe",
+  "readyornot-win64-shipping",
+]
+
+[[game]]
+variant = "Gtfo"
+slug = "gtfo"
+display_name = "GTFO"
+steam_appids = [493520]
+titles = ["gtfo"]
+processes = ["gtfo.exe", "gtfo"]
+
+[[game]]
+variant = "Back4Blood"
+slug = "back_4_blood"
+display_name = "Back 4 Blood"
+steam_appids = [924970]
+titles = ["back 4 blood", "b4b"]
+processes = ["back4blood.exe", "back4blood"]
+
+[[game]]
+variant = "Vermintide2"
+slug = "vermintide_2"
+display_name = "Warhammer: Vermintide 2"
+steam_appids = [552500]
+titles = ["warhammer: vermintide 2", "vermintide 2"]
+processes = ["vermintide2.exe", "vermintide2"]
+
+[[game]]
+variant = "Chivalry2"
+slug = "chivalry_2"
+display_name = "Chivalry 2"
+steam_appids = [1350700]
+titles = ["chivalry 2"]
+processes = [
+  "chivalry2.exe",
+  "chivalry2",
+  "chivalry2-win64-shipping.exe",
+  "chivalry2-win64-shipping",
+  "chivalry2launcher.exe",
+  "chivalry2launcher",
+]
+
+[[game]]
+variant = "Mordhau"
+slug = "mordhau"
+display_name = "Mordhau"
+steam_appids = [629760]
+titles = ["mordhau"]
+processes = ["mordhau.exe", "mordhau"]
+
+[[game]]
+variant = "ForHonor"
+slug = "for_honor"
+display_name = "For Honor"
+steam_appids = [304390]
+titles = ["for honor"]
+processes = ["forhonor.exe", "forhonor"]
+
+[[game]]
+variant = "HaloInfinite"
+slug = "halo_infinite"
+display_name = "Halo Infinite"
+steam_appids = [1240440]
+titles = ["halo infinite"]
+processes = ["haloinfinite.exe", "haloinfiniteshipping", "haloinfinite"]
+
+[[game]]
+variant = "Titanfall2"
+slug = "titanfall_2"
+display_name = "Titanfall 2"
+steam_appids = [1237970]
+titles = ["titanfall 2", "titanfall2"]
+processes = ["titanfall 2.exe", "titanfall2"]
+
+[[game]]
+variant = "Splitgate"
+slug = "splitgate"
+display_name = "Splitgate"
+steam_appids = [1212710, 2246370]
+titles = ["splitgate", "splitgate 2"]
+processes = ["splitgate.exe", "splitgate2.exe", "splitgate", "splitgate2"]
+
+[[game]]
+variant = "XDefiant"
+slug = "xdefiant"
+display_name = "XDefiant"
+titles = ["xdefiant"]
+processes = ["xdefiant.exe", "xdefiant"]
+
+[[game]]
+variant = "NarakaBladepoint"
+slug = "naraka_bladepoint"
+display_name = "Naraka: Bladepoint"
+steam_appids = [1599340]
+titles = ["naraka: bladepoint", "naraka bladepoint"]
+processes = ["naraka.exe", "naraka"]
+
+[[game]]
+variant = "Smite"
+slug = "smite"
+display_name = "Smite"
+steam_appids = [386360, 2449490]
+titles = ["smite", "smite 2"]
+processes = [
+  "smite.exe",
+  "smite2.exe",
+  "smite",
+  "smite2",
+  "hemingway-win64-shipping.exe",
+  "hemingway-win64-shipping",
+]
+
+[[game]]
+variant = "Brawlhalla"
+slug = "brawlhalla"
+display_name = "Brawlhalla"
+steam_appids = [290080]
+titles = ["brawlhalla"]
+processes = ["brawlhalla.exe", "brawlhalla"]
+
+[[game]]
+variant = "MultiVersus"
+slug = "multiversus"
+display_name = "MultiVersus"
+steam_appids = [1818750]
+titles = ["multiversus"]
+processes = ["multiversus.exe", "multiversus"]
+
+[[game]]
+variant = "StreetFighter6"
+slug = "street_fighter_6"
+display_name = "Street Fighter 6"
+steam_appids = [1364780]
+titles = ["street fighter 6", "sf6"]
+processes = ["streetfighter6.exe", "sf6.exe", "streetfighter6", "sf6"]
+
+[[game]]
+variant = "Tekken8"
+slug = "tekken_8"
+display_name = "Tekken 8"
+steam_appids = [1778820]
+titles = ["tekken 8", "tekken8"]
+processes = [
+  "tekken8.exe",
+  "tekken8",
+  "polaris-win64-shipping.exe",
+  "polaris-win64-shipping",
+]
+
+[[game]]
+variant = "MortalKombat1"
+slug = "mortal_kombat_1"
+display_name = "Mortal Kombat 1"
+steam_appids = [1971870]
+titles = ["mortal kombat 1", "mk1", "mortal kombat"]
+processes = [
+  "mk1.exe",
+  "mortalkombat1.exe",
+  "mk1",
+  "mortalkombat1",
+  "mk12.exe",
+  "mk12",
+]

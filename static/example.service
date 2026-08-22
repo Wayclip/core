@@ -1,0 +1,18 @@
+[Unit]
+Description=Wayclip Daemon
+After=pipewire.service generic-graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=/path/to/wayclip-cli-linux --daemon
+Restart=on-failure
+RestartSec=5s
+Type=notify
+PassEnvironment=WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+Environment="RUST_LOG=trace,gilrs=warn,gilrs_core=warn"
+Environment=GLOBAL_HOTKEY_APP_ID=com.wayclip.daemon
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
