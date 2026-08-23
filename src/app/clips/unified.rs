@@ -15,6 +15,9 @@ use chrono::{DateTime, Local};
 use colored::ColoredString;
 use std::fmt::Display;
 
+/// A struct which contains information about a local clip.
+/// This is used only to simplify logic and be able to share a single struct across CLI/GUI.
+/// This struct also implmenets `Display`
 #[derive(Debug, Clone, Default)]
 pub struct LocalClipInfo {
     name: String,
@@ -27,6 +30,9 @@ pub struct LocalClipInfo {
     file_name: String,
 }
 
+/// A struct which contains information about a hosted clip.
+/// This is used only to simplify logic and be able to share a single struct across CLI/GUI.
+/// This struct also implmenets `Display`
 #[derive(Debug, Clone, Default)]
 pub struct HostedClipInfo {
     hosted_id: String,
@@ -35,6 +41,9 @@ pub struct HostedClipInfo {
     hosted_usage: i32,
 }
 
+/// A struct which contains information about any single clip
+/// This is used only to simplify logic and be able to share a single struct across CLI/GUI.
+/// This struct also implmenets `Display`
 #[derive(Debug, Clone, Default)]
 pub struct SelectedClipInfo {
     local: LocalClipInfo,
@@ -109,7 +118,7 @@ impl From<&HostedClip> for HostedClipInfo {
             (ClipsStatusType::Ready, ClipsStatusType::Ready, ClipsStatusType::Ready) => {
                 info.hosted_link = Some(
                     // TODO: fix hardocded wayclip.com
-                    format!("https://wayclip.com/clips/{}", &hosted.clip_id),
+                    format!("https://wayclip.com/clips/{}", hosted.clip_id),
                 );
                 info.hosted_status = hosted.clip_visibility.to_string();
             }
@@ -194,20 +203,20 @@ impl From<&SelectedClip> for SelectedClipInfo {
     }
 }
 
-/// The clips structs are a bit convoluted, but here is a general explanation:
-/// We have 2 core structs, LocalClip and HostedClip. One has metadata stored locally, whilst the
-/// other has to be fetched from the API.
-/// When user wants to interact with clips, we dont want to limit him to only one type of clip, so
-/// we have to mix them together. For that reason we have UnifiedClip.
-/// UnifiedClip has basic information needed for searching & sorting and then has optional `local`
-/// and `hosted` fields. The CLI/GUI will present user with all the found UnifiedClips and user will
-/// have to pick one of them.
-/// After user picks a UnifiedClip, we have to prompt him which specific version of the clip he
-/// wants to change. For that, we cast the UnifiedClip to a SelectedClip. Afterwards we can acquire
-/// MixedActions to see what actions are avaiable for this sepcific SelectedClip.
-/// TLDR; UnifiedClip -> Initial Clip Type for showing all clips. SelectedClip -> After user finds a
-/// clip and chooses which version to control (LocalClip, HostedClip, or both).
 impl UnifiedClip {
+    /// The clips structs are a bit convoluted, but here is a general explanation:
+    /// We have 2 core structs, LocalClip and HostedClip. One has metadata stored locally, whilst the
+    /// other has to be fetched from the API.
+    /// When user wants to interact with clips, we dont want to limit him to only one type of clip, so
+    /// we have to mix them together. For that reason we have UnifiedClip.
+    /// UnifiedClip has basic information needed for searching & sorting and then has optional `local`
+    /// and `hosted` fields. The CLI/GUI will present user with all the found UnifiedClips and user will
+    /// have to pick one of them.
+    /// After user picks a UnifiedClip, we have to prompt him which specific version of the clip he
+    /// wants to change. For that, we cast the UnifiedClip to a SelectedClip. Afterwards we can acquire
+    /// MixedActions to see what actions are avaiable for this sepcific SelectedClip.
+    /// TLDR; UnifiedClip -> Initial Clip Type for showing all clips. SelectedClip -> After user finds a
+    /// clip and chooses which version to control (LocalClip, HostedClip, or both).
     pub async fn get_all_clips() -> Result<Vec<Self>, WayclipError> {
         // Initialise settings and a vec
         let settings = UserSettings::load()?;
@@ -281,9 +290,11 @@ impl UnifiedClip {
 
         Ok(unified_clips)
     }
+}
 
-    pub fn get_type(&self) -> UnifiedClipType {
-        match (&self.local, &self.hosted) {
+impl From<&UnifiedClip> for UnifiedClipType {
+    fn from(value: &UnifiedClip) -> Self {
+        match (&value.local, &value.hosted) {
             (Some(_), Some(_)) => UnifiedClipType::Both,
             (Some(_), None) => UnifiedClipType::LocalOnly,
             (None, Some(_)) => UnifiedClipType::HostedOnly,

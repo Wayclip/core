@@ -14,6 +14,7 @@ use url::Url;
 pub struct SettingsRegistry;
 
 impl SettingsRegistry {
+    /// Method to search the TOML and find the key
     pub fn find_by_key(key: &str) -> Option<(&'static String, &'static SettingsDefinition)> {
         SCHEMA
             .settings
@@ -21,6 +22,7 @@ impl SettingsRegistry {
             .find(|(_, def)| def.key.eq_ignore_ascii_case(key))
     }
 
+    /// Method to parse a serde_json::Value into a correct type based on the key
     pub fn parse_raw_value(
         key: &str,
         value: serde_json::Value,
@@ -97,6 +99,7 @@ impl SettingsRegistry {
         }
     }
 
+    /// Method to parse a &str into a correct type based on the key
     pub fn parse_raw_str(key: &str, value: &str) -> Result<serde_json::Value, WayclipError> {
         let (_, def) =
             Self::find_by_key(key).ok_or_else(|| WayclipError::NotFound("No such key".into()))?;
@@ -170,6 +173,7 @@ impl SettingsRegistry {
         }
     }
 
+    /// Get a value stored at some settings location
     pub fn get_value<T: Serialize, R: DeserializeOwned + Send + 'static + Display>(
         settings: &T,
         path: &str,
@@ -186,6 +190,7 @@ impl SettingsRegistry {
         Ok(serde_json::from_value(current.to_owned())?)
     }
 
+    /// Set a value stored at some settings location
     pub fn set_value<T: Serialize + DeserializeOwned>(
         settings: &T,
         path: &str,

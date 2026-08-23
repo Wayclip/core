@@ -4,9 +4,12 @@ use crate::{
 };
 use serde_json::Value;
 
+/// A wrapper struct responsible for migrating the config to newer versions
 pub struct SettingsMigrate;
 
 impl SettingsMigrate {
+    /// Method to update from one version to the other
+    /// Limited to only upgrading
     pub fn migrate(
         config: &mut Value,
         from: semver::Version,
@@ -33,6 +36,7 @@ impl SettingsMigrate {
 }
 
 impl MigrationChange {
+    /// Method to implement a migration change
     pub fn implement(&self, json: &mut Value) -> Result<(), WayclipError> {
         match self {
             MigrationChange::Insert { setting_id } => {

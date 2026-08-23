@@ -5,41 +5,50 @@ use std::{
     str::FromStr,
 };
 
-pub const DEFAULT_LENGTH_SECONDS: u64 = 120;
-pub const DEFAULT_RESOLUTION: (u64, u64) = (1920, 1080);
-pub const DEFAULT_VIDEO_CODEC: VideoCodec = VideoCodec::H264(CodecType::NVIDIA);
-pub const DEFAULT_FPS: u64 = 30;
-pub const DEFAULT_BITRATE_KBPS: u64 = 15000;
-pub const DEFAULT_AUDIO_CODEC: AudioCodec = AudioCodec::Opus;
-pub const DEFAULT_MICROPHONE_LEVEL: f64 = 0.75;
-pub const DEFAULT_BACKGROUND_LEVEL: f64 = 0.50;
-pub const DEFAULT_MICROPHONE_ENABLED: bool = true;
-pub const DEFAULT_BACKGROUND_ENABLED: bool = true;
-pub const DEFAULT_AUDIO_SAMPLE_RATE: u64 = 48000;
-pub const MIN_RESOLUTION_WIDTH: u64 = 1;
-pub const MAX_RESOLUTION_WIDTH: u64 = 7680;
-pub const MIN_RESOLUTION_HEIGHT: u64 = 1;
-pub const MAX_RESOLUTION_HEIGHT: u64 = 4320;
-pub const MIN_BITRATE_KBPS: u64 = 300;
-pub const MAX_BITRATE_KBPS: u64 = 10000000;
-pub const MIN_AUDIO_LEVEL: f64 = 0.0;
-pub const MAX_AUDIO_LEVEL: f64 = 1.0;
-pub const MIN_FPS: u64 = 1;
-pub const MAX_FPS: u64 = 1000;
-pub const ALLOWED_AUDIO_SAMPLE_RATES_HZ: &[u64] = &[8000, 16000, 22050, 32000, 44100, 48000, 96000];
+const DEFAULT_LENGTH_SECONDS: u64 = 120;
+const DEFAULT_RESOLUTION: (u64, u64) = (1920, 1080);
+const DEFAULT_VIDEO_CODEC: VideoCodec = VideoCodec::H264(CodecType::NVIDIA);
+const DEFAULT_FPS: u64 = 30;
+const DEFAULT_BITRATE_KBPS: u64 = 15000;
+const DEFAULT_AUDIO_CODEC: AudioCodec = AudioCodec::Opus;
+const DEFAULT_MICROPHONE_LEVEL: f64 = 0.75;
+const DEFAULT_BACKGROUND_LEVEL: f64 = 0.50;
+const DEFAULT_MICROPHONE_ENABLED: bool = true;
+const DEFAULT_BACKGROUND_ENABLED: bool = true;
+const DEFAULT_AUDIO_SAMPLE_RATE: u64 = 48000;
+const MIN_RESOLUTION_WIDTH: u64 = 1;
+const MAX_RESOLUTION_WIDTH: u64 = 7680;
+const MIN_RESOLUTION_HEIGHT: u64 = 1;
+const MAX_RESOLUTION_HEIGHT: u64 = 4320;
+const MIN_BITRATE_KBPS: u64 = 300;
+const MAX_BITRATE_KBPS: u64 = 10000000;
+const MIN_AUDIO_LEVEL: f64 = 0.0;
+const MAX_AUDIO_LEVEL: f64 = 1.0;
+const MIN_FPS: u64 = 1;
+const MAX_FPS: u64 = 1000;
+const ALLOWED_AUDIO_SAMPLE_RATES_HZ: &[u64] = &[8000, 16000, 22050, 32000, 44100, 48000, 96000];
 
+/// The recording settings for audio & video
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct RecordingSettings {
+    /// Video settings
     pub video: VideoSettings,
+    /// Audio settings
     pub audio: AudioSettings,
 }
 
+/// Video settings that daemon will follow
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VideoSettings {
+    /// Length of clip at which ring buffer will loop
     pub length_seconds: u64,
+    /// Resolution at which to record
     pub resolution: Resolution,
+    /// Fps at which to record
     pub fps: Fps,
+    /// The video codec to use
     pub codec: VideoCodec,
+    /// The bitrate at which its recorded
     pub bitrate_kbps: Bitrate,
 }
 
@@ -55,6 +64,7 @@ impl Default for VideoSettings {
     }
 }
 
+/// Wrapper for FPS
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Fps(pub u64);
 
@@ -88,6 +98,8 @@ impl Display for Fps {
     }
 }
 
+/// Wrapper for resolution
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Resolution {
     pub width: u64,
@@ -95,6 +107,7 @@ pub struct Resolution {
 }
 
 impl Resolution {
+    /// Method to form struct from any unsgined integer tuple
     pub fn from_tuple<U>(tuple: (U, U)) -> Self
     where
         U: Into<u64>,
@@ -105,6 +118,7 @@ impl Resolution {
         }
     }
 
+    /// Format the struct to a tuple
     pub fn to_tuple(&self) -> (u64, u64) {
         (self.width, self.height)
     }
@@ -163,6 +177,7 @@ impl Display for Resolution {
     }
 }
 
+/// Wrapper around bitrate
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Bitrate(pub u64);
 
@@ -197,14 +212,15 @@ impl Display for Bitrate {
     }
 }
 
+/// The video codec type that is used
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub enum CodecType {
-    // Requires proprietary drivers and some gstreamer package
-    // https://gstreamer.freedesktop.org/documentation/nvcodec/index.html
+    /// Requires proprietary drivers and some gstreamer package
+    /// <https://gstreamer.freedesktop.org/documentation/nvcodec/index.html>
     NVIDIA,
-    // Requires libva and supported driver
+    /// Requires libva and supported driver
     VAAPI,
-    // One of the gstreamer-packages has it
+    /// One of the gstreamer-packages has it
     Software,
 }
 
@@ -230,10 +246,15 @@ impl FromStr for CodecType {
     }
 }
 
+/// The video codec to be used
+/// Each codec also contains a codec type (NV/VAAPI/Software)
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum VideoCodec {
+    /// h264 (best)
     H264(CodecType),
+    /// h265
     H265(CodecType),
+    /// av1
     AV1(CodecType),
 }
 
@@ -270,6 +291,7 @@ impl std::fmt::Display for VideoCodec {
 }
 
 impl VideoCodec {
+    /// Get the gstreamer parser element
     pub fn get_parser(&self) -> &str {
         match self {
             VideoCodec::H264(_) => "h264parse",
@@ -278,12 +300,14 @@ impl VideoCodec {
         }
     }
 
+    /// Get the inner codec (backend) type
     pub fn get_backend(&self) -> &CodecType {
         match self {
             VideoCodec::H264(t) | VideoCodec::H265(t) | VideoCodec::AV1(t) => t,
         }
     }
 
+    /// Get the gstreamer encoder element
     pub fn get_encoder(&self) -> &str {
         match self {
             // https://gstreamer.freedesktop.org/documentation/nvcodec/nvh264enc.html?gi-language=rust
@@ -310,11 +334,16 @@ impl VideoCodec {
     }
 }
 
+/// Audio settings daemonw ill use
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioSettings {
+    /// The sample rate, in Hz
     pub sample_rate_hz: SampleRate,
+    /// The audio codec to use
     pub codec: AudioCodec,
+    /// The pipewire microphone information
     pub microphone: AudioNode,
+    /// The pipewire background information
     pub background: AudioNode,
 }
 
@@ -327,18 +356,19 @@ impl Default for AudioSettings {
             codec: DEFAULT_AUDIO_CODEC,
             microphone: AudioNode::new(
                 String::new(),
-                DEFAULT_MICROPHONE_LEVEL,
+                AudioLevel(DEFAULT_MICROPHONE_LEVEL),
                 DEFAULT_MICROPHONE_ENABLED,
             ),
             background: AudioNode::new(
                 String::new(),
-                DEFAULT_BACKGROUND_LEVEL,
+                AudioLevel(DEFAULT_BACKGROUND_LEVEL),
                 DEFAULT_BACKGROUND_ENABLED,
             ),
         }
     }
 }
 
+/// Wrapper around audio sample rate
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SampleRate(pub u64);
 
@@ -373,15 +403,23 @@ impl Display for SampleRate {
     }
 }
 
+/// Inforatiom about a single node
+/// Data about node_name collected from pipewire
+/// P.S. Just realising this should not be the case, since this is shared module, and pipewire not
+/// available on windows...
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioNode {
-    pub level: f64,
+    /// The level in range of 0.0-1.0
+    pub level: AudioLevel,
+    /// The pipewire node name
     pub node_name: String,
+    /// If the node is enabled
     pub enabled: bool,
 }
 
 impl AudioNode {
-    pub fn new(node_name: String, level: f64, enabled: bool) -> Self {
+    /// Create new node
+    pub fn new(node_name: String, level: AudioLevel, enabled: bool) -> Self {
         Self {
             level,
             node_name,
@@ -390,6 +428,7 @@ impl AudioNode {
     }
 }
 
+/// AudioLevel wrapper
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioLevel(pub f64);
 
@@ -418,10 +457,14 @@ impl Display for AudioLevel {
     }
 }
 
+/// The audio codec to be used
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum AudioCodec {
+    /// Opus
     Opus,
+    /// AAC
     AAC,
+    /// MP3
     MP3,
 }
 
@@ -450,6 +493,7 @@ impl std::fmt::Display for AudioCodec {
 }
 
 impl AudioCodec {
+    /// Get the gstreamer encoder element
     pub fn get_encoder(&self) -> &str {
         match self {
             AudioCodec::Opus => "opusenc",
@@ -458,6 +502,7 @@ impl AudioCodec {
         }
     }
 
+    /// Get the gstreamer parser element
     pub fn get_parser(&self) -> &str {
         match self {
             AudioCodec::Opus => "opusparse",

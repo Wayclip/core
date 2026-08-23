@@ -1,8 +1,8 @@
+use crate::models::error::WayclipError;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, str::FromStr};
 
-use crate::models::error::WayclipError;
-
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum WayclipControllerButton {
     South,
@@ -76,14 +76,17 @@ impl From<WayclipControllerButton> for gilrs::Button {
     }
 }
 
-// buttons that are held together, on controller there are less restrictions
+/// The combination of buttons that are held together to trigger an action.
+/// On controller there are less restrictions about what keys and their number have to be pressed
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct WayclipControllerCombo {
+    /// The buttons themselves
     pub buttons: Vec<WayclipControllerButton>,
 }
 
 impl WayclipControllerCombo {
+    /// Method to know if the combo entered will trigger the combination
     pub fn is_satisfied(&self, held: &HashSet<gilrs::Button>) -> bool {
         !self.buttons.is_empty() && self.buttons.iter().all(|b| held.contains(&(*b).into()))
     }

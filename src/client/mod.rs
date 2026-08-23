@@ -1,3 +1,7 @@
+//! src/client will be responsbile for making any API/Network calls, such as Authentication calls,
+//! Clips handling, Quering data. This is done to generalise the code base, so that same client is
+//! used, which will handle any network requests same way
+
 use crate::{app::os_keyring::OsKeyring, models::error::WayclipError};
 use cookie_rs::Cookie;
 use reqwest::{
@@ -8,16 +12,28 @@ use reqwest::{
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::{fmt::Debug, sync::Arc};
 
-/// src/client will be responsbile for making any API/Network calls, such as Authentication calls,
-/// Clips handling, Quering data. This is done to generalise the code base, so that same client is
-/// used, which will handle any network requests same way
+/// We standardise the naming convention of the two cookies that are used for authentication.
+/// One of them being `jwt_token`
 pub const JWT_TOKEN: &str = "jwt_token";
+/// We standardise the naming convention of the two cookies that are used for authentication.
+/// The other one being `refresh_token`
 pub const REFRESH_TOKEN: &str = "refresh_token";
 
+/// A submodule, a wrapper of such, which uses the `WayclipClient` to accomplish a goal assosciated
+/// with providing authentication
 pub mod authentication;
+/// A submodule, a wrapper of such, which uses the `WayclipClient` to accomplish a goal assosciated
+/// with managing hosted clips
 pub mod clips;
+/// A submodule, a wrapper of such, which uses the `WayclipClient` to accomplish a goal assosciated
+/// with managing users (/me)
 pub mod users;
 
+/// This struct holds the information needed to one or more calls to the API. It holds the endpoint
+/// Url, `reqwest` Client and other information.
+/// The `tokens`, `body` and `multipart_builder` are populated by the submodule when it seems fit.
+/// This allows us to make various types of requests, no matter the method, url, what body to be
+/// passed or even multipart data
 #[derive(Clone)]
 pub struct WayclipClient {
     api_endpoint: url::Url,
@@ -29,6 +45,7 @@ pub struct WayclipClient {
 }
 
 impl WayclipClient {
+    /// General method to construct a WayclipClient
     pub fn new(api_url: url::Url) -> Result<Self, WayclipError> {
         let http_client = reqwest::ClientBuilder::new()
             .user_agent("Wayclip")
@@ -74,6 +91,8 @@ impl WayclipClient {
         Ok(())
     }
 
+    /// A method for the submodules to ensure that with the next call, we will use our credentials.
+    /// In addition, this stores the extracted credentials inside the Client itself.
     pub async fn with_credentials(&mut self) -> Result<&mut Self, WayclipError> {
         let os_keyring = OsKeyring;
         let tokens = os_keyring
@@ -85,6 +104,9 @@ impl WayclipClient {
         Ok(self)
     }
 
+    /// A method for the submodules to ensure that with the next call, we will use the provided
+    /// body, which has to be serialisable.
+    /// In addition, this stores the body inside the Client itself.
     pub async fn with_body<B>(&mut self, body: &B) -> Result<&mut Self, WayclipError>
     where
         B: Serialize + Send + 'static,
@@ -94,6 +116,10 @@ impl WayclipClient {
         Ok(self)
     }
 
+    /// A method for the submodules to ensure that with the next call, we will use the provided
+    /// multipart_builder. The multipart builder is neccesary to take ownership of the multipart
+    /// when needed.
+    /// In addition, this stores the multipart_builder inside the Client itself.
     pub async fn with_multipart(
         &mut self,
         multipart_builder: Arc<dyn Fn() -> Form + Send + Sync>,
@@ -102,6 +128,14 @@ impl WayclipClient {
         self
     }
 
+    /// The main method which calls the selected endpoint with the correct method.
+    /// If the client contains, body, tokens, or a multipart_builder, they are automatically added
+    /// to this request.
+    /// If the request succeeds, we return a `WayclipResponse<R>`. This allows us to pass in the
+    /// return code, as well as data
+    /// If the request fails, but the erros was due to authentication, that *most* likely suggests
+    /// that the `refresh_token` has expired. This prompts us clear the credentials
+    /// If the request fails on other terms, we just return an error
     pub async fn send_call<R>(
         &mut self,
         method: Method,
@@ -148,6 +182,7 @@ impl WayclipClient {
     }
 }
 
+/// The struct that holds both jwt and refresh token, which is what gets stored inside the keyring.
 #[derive(Debug, Serialize, Deserialize, Clone, Default, PartialEq, Eq)]
 pub struct TokensStore {
     jwt_token: String,
@@ -171,7 +206,7 @@ impl TokensStore {
         Ok(data)
     }
 
-    pub fn to_cookie_string(&self) -> String {
+    fn to_cookie_string(&self) -> String {
         format!(
             "jwt_token={}; refresh_token={}",
             self.jwt_token, self.refresh_token
@@ -180,21 +215,33 @@ impl TokensStore {
 }
 
 /// Very useful if outer function wants to know exact return status
+/// Gives us the response code (which in this case will always be of 2xx type, as well as data)
 #[derive(Debug)]
 pub enum WayclipResponse<R: DeserializeOwned + Send + 'static> {
+    /// 200
     Ok(R),
+    /// 201
     Created(R),
+    /// 202
     Accepted(Option<R>),
-    NoContent,
-    ResetContent,
+    /// 203
     NonAuthoritativeInformation(R),
+    /// 204
+    NoContent,
+    /// 205
+    ResetContent,
+    /// 206
     PartialContent(R),
+    /// 207
     MultiStatus(R),
+    /// 208
     AlreadyReported(R),
+    /// 226
     ImUsed(R),
 }
 
 impl<R: DeserializeOwned + Send + 'static> WayclipResponse<R> {
+    /// Parses the WayclipResponse, to extract the inner data
     pub fn into_inner(self) -> Result<R, WayclipError> {
         match self {
             WayclipResponse::Ok(r)
@@ -215,6 +262,7 @@ impl<R: DeserializeOwned + Send + 'static> WayclipResponse<R> {
         }
     }
 
+    /// A method to construct the WayclipResponse from a `reqwest::Response`
     pub async fn try_from_reqwest(value: reqwest::Response) -> Result<Self, WayclipError> {
         let status = value.status();
 

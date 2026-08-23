@@ -1,15 +1,17 @@
+use crate::models::error::WayclipError;
 use gstreamer::ClockTime;
 use gstreamer_pbutils::Discoverer;
 use rust_ffmpeg::{Codec, FFmpegBuilder};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tokio::fs;
 use url::Url;
 
-use crate::models::error::WayclipError;
-
+/// An empty struct, created to make sure all the FFmpeg actions stay in one place.
 pub struct Ffmpeg;
 
 impl Ffmpeg {
+    /// Trims the clip via the specified starting and ending positions.
+    /// `Replace/Copy` logic is detected by comparing `source_path` and `target_path`.
     pub async fn trim(
         source_path: &PathBuf,
         target_path: &PathBuf,
@@ -60,7 +62,8 @@ impl Ffmpeg {
         Ok(target_path.to_owned())
     }
 
-    /// Although this is not an FFmpeg action, I have decided it is more suited in this module, as
+    /// This method allows us to get the duration of a video using `gstreamer`
+    /// P.S. Although this is not an FFmpeg action, I have decided it is more suited in this module, as
     /// it works directly with video files, but is not an I/O operation.
     pub async fn duration(source_path: &PathBuf) -> Result<Option<ClockTime>, WayclipError> {
         gstreamer::init()?;
@@ -80,12 +83,15 @@ impl Ffmpeg {
         Ok(info.duration())
     }
 
+    /// This method allows us to generate a preview. This method also requires the generator itself
+    /// to be passed in. So far, the only generator accepted is `RemuxHandler` from the
+    /// `wayclip-daemon` crate.
     /// Although this is not an FFmpeg action, I have decided it is more suited in this module, as
     /// it works directly with video files, but is not an I/O operation.
     pub fn generate_preview(
         generator: &impl PreviewGenerator,
-        video_path: &PathBuf,
-        preview_path: &PathBuf,
+        video_path: &Path,
+        preview_path: &Path,
     ) -> Result<(), WayclipError> {
         generator.generate_preview(video_path, preview_path)
     }
@@ -97,9 +103,6 @@ impl Ffmpeg {
 /// RemuxHandler (which not implements this trait) as a generator.
 /// This simplifies the dependency tree to daemon -> core
 pub trait PreviewGenerator: Send + Sync {
-    fn generate_preview(
-        &self,
-        video_path: &PathBuf,
-        preview_path: &PathBuf,
-    ) -> Result<(), WayclipError>;
+    /// The method itself that is then implemented in the `wayclip-daemon` crate
+    fn generate_preview(&self, video_path: &Path, preview_path: &Path) -> Result<(), WayclipError>;
 }

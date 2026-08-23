@@ -1,10 +1,10 @@
 use crate::models::error::WayclipError;
 use nutype::nutype;
 
-// horrible looking macros, but what they do is basically
-// 1. Create a new nutype struct
-// 2. Assign rules, like regex, length, etc..
-// 3. create utopia traits (only if feature = "openapi" is enabled)
+/// horrible looking macros, but what they do is basically
+/// 1. Create a new nutype struct
+/// 2. Assign rules, like regex, length, etc..
+/// 3. create utopia traits (only if feature = "openapi" is enabled)
 macro_rules! validated_string {
     ($type:ident, as: $name:expr, max: $max_len:expr, example: $example:expr) => {
         #[nutype(

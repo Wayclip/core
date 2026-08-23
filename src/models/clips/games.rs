@@ -9,6 +9,7 @@ const GENERIC_IGNORE: &[&str] = &[
 ];
 static INSTANCE: OnceLock<GamesDb> = OnceLock::new();
 
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub enum ClipsGameTag {
@@ -41,6 +42,7 @@ pub enum ClipsGameTag {
     Shooter,
 }
 
+#[allow(missing_docs)]
 #[derive(
     Clone,
     Copy,
@@ -206,6 +208,7 @@ impl FromStr for ClipsGames {
     }
 }
 
+#[allow(missing_docs)]
 impl ClipsGames {
     pub fn from_variant_ident(s: &str) -> Option<Self> {
         Self::iter().find(|g| g.as_ref() == s)

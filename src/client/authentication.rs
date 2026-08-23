@@ -8,24 +8,29 @@ use reqwest::Method;
 use std::time::Duration;
 use tokio::time::interval;
 
-pub const POLL_DATA_TIMEOUT_S: i64 = 120;
+const POLL_DATA_TIMEOUT_S: i64 = 120;
 
+/// A submodule of WayclipClient, which manages authenticating the user
 pub struct AuthenticationHttpClient {
     client: WayclipClient,
 }
 
 impl AuthenticationHttpClient {
+    /// Create a new client
     pub fn new(api_url: url::Url) -> Result<Self, WayclipError> {
         let client = WayclipClient::new(api_url)?;
         Ok(Self { client })
     }
 
+    /// Method to initialise the process of authenticating via device & user code
     pub async fn init(&mut self) -> Result<GetAuthDeviceResponse, WayclipError> {
         let res = self.client.send_call(Method::GET, "/auth/device").await?;
 
         res.into_inner()
     }
 
+    /// Method to be called after init, to continously poll if user has logged in & typed in the
+    /// code or not. After user has logged in, we will recieve the needed tokens
     pub async fn poll(
         &mut self,
         interval_s: u32,
@@ -66,6 +71,7 @@ impl AuthenticationHttpClient {
         }
     }
 
+    /// Method to de-activate the current session and clear the keyring
     pub async fn logout(&mut self) -> Result<(), WayclipError> {
         match self
             .client

@@ -4,14 +4,15 @@ use crate::models::input::{
 };
 use serde::{Deserialize, Serialize};
 
-pub const DEFAULT_SHORTCUT_KEY_CODE: WayclipKeyCode = WayclipKeyCode::Char('c');
-pub const DEFAULT_SHORTCUT_KEY_MODIFIER: WayclipKeyModifiers = WayclipKeyModifiers::ALT;
+const DEFAULT_SHORTCUT_KEY_CODE: WayclipKeyCode = WayclipKeyCode::Char('c');
+const DEFAULT_SHORTCUT_KEY_MODIFIER: WayclipKeyModifiers = WayclipKeyModifiers::ALT;
 
+/// Shortcut settings daemon will follow
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShortcutsSettings {
-    // WayclipKeyCombo since supports a combination of alt, win, ctrl + any key
+    /// WayclipKeyCombo since supports a combination of alt, win, ctrl + any key
     pub save_clip: WayclipKeyCombo,
-    // WayclipControllerCombo is an addition combo, which works for any combination of a STANDARD controller layout
+    /// WayclipControllerCombo is an addition combo, which works for any combination of a STANDARD controller layout
     pub save_clip_controller: Option<WayclipControllerCombo>,
 }
 

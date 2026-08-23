@@ -15,10 +15,11 @@ use itertools::Itertools;
 use regex::Regex;
 use std::ffi::OsStr;
 
+/// An empty struct acting as a wrapper, containing query-related methods
 pub struct ClipsQuery;
 
 impl ClipsQuery {
-    /// Use the HTTP client and web query to loop until we get all clips that user has
+    /// Use the HTTP client and web query to loop until we get all clips that user has hosted
     pub async fn get_all_hosted_clips() -> Result<Vec<HostedClip>, WayclipError> {
         // Load in the settings and construct the HTTP client
         let settings = UserSettings::load()?;
@@ -56,7 +57,8 @@ impl ClipsQuery {
         Ok(all_clips)
     }
 
-    /// Use the HTTP client and web query to search for clip remotely
+    /// Use the HTTP client and web query to search for a specific clip on the remote
+    /// Clip identifier could be either file name, clip name, or even a regex expression.
     pub async fn query_hosted_clips(
         clip_identifier: &str,
         regex: bool,
@@ -115,7 +117,8 @@ impl ClipsQuery {
         Ok(results)
     }
 
-    /// We make an iterator so we dont have to repeat ourselves so much
+    /// We made an iterator so we dont have to repeat ourselves so much when searching from local
+    /// clips
     fn scan_clips(
         settings: &UserSettings,
     ) -> Result<impl Iterator<Item = (LocalClip, String)> + '_, WayclipError> {
@@ -187,7 +190,7 @@ impl ClipsQuery {
     }
 
     /// Local method to find a clip by its identifier
-    /// TODO: Consider removing since we have `query_local_clips`, but this one returns single clip
+    /// Clip identifier could be either file name or a clip name
     pub async fn get_local_clip(clip_identifier: &str) -> Result<LocalClip, WayclipError> {
         let settings = UserSettings::load()?;
 
@@ -205,8 +208,9 @@ impl ClipsQuery {
         Ok(clip)
     }
 
-    /// Local method
-    /// Gets all clips, then merges their tags and dedups
+    /// Gets all local clips, merges their tags and removes duplicates
+    /// This method is used as a 'pseduo-autocomplete' when filling out tags.
+    /// All your tags will be a suggestion that you can just TAB into
     pub async fn get_all_tags() -> Result<Vec<String>, WayclipError> {
         Ok(Self::get_all_local_clips()
             .await?
@@ -217,6 +221,7 @@ impl ClipsQuery {
             .collect::<Vec<_>>())
     }
 
+    /// Gets all local clips, collects their names and removes duplicates
     pub async fn get_all_names() -> Result<Vec<String>, WayclipError> {
         Ok(Self::get_all_local_clips()
             .await?
@@ -227,8 +232,10 @@ impl ClipsQuery {
             .collect::<Vec<_>>())
     }
 
-    /// Combined method
     /// Handles searching both local & hosted
+    /// Clip identifier could be either file name, clip name, or even a regex expression.
+    /// `clip_type` has to be provided to know which sector to look for specifically
+    /// TODO: Can be merged with `get_from_all_clips`
     pub async fn query_all_clips(
         clip_identifier: &str,
         regex: bool,
@@ -247,6 +254,8 @@ impl ClipsQuery {
         }
     }
 
+    /// Method to get a single clip from both local & hosted
+    /// Clip identifier could be either file name, clip name, or even a regex expression.
     pub async fn get_from_all_clips(
         clip_identifier: &str,
         clip_type: SelectedClipType,

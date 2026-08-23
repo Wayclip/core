@@ -1,15 +1,9 @@
 use crate::{
     models::error::WayclipError,
     settings::{
-        api::ApiSettings,
-        discovery::GameDiscovery,
-        migration::SettingsMigrate,
-        notifications::NotificationSettings,
-        output::{DEFAULT_CONFIG_PATH, OutputSettings},
-        recording::RecordingSettings,
-        registry::SettingsRegistry,
-        shortcut::ShortcutsSettings,
-        tray::TraySettings,
+        api::ApiSettings, discovery::GameDiscovery, migration::SettingsMigrate,
+        notifications::NotificationSettings, output::OutputSettings, recording::RecordingSettings,
+        registry::SettingsRegistry, shortcut::ShortcutsSettings, tray::TraySettings,
     },
 };
 use dirs::config_dir;
@@ -21,28 +15,49 @@ use std::{
     path::PathBuf,
 };
 
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+const DEFAULT_CONFIG_PATH: &str = "wayclip/config.json";
 
+/// API settings
 pub mod api;
+/// Game discovery settings
 pub mod discovery;
+/// Module responsible for migration between versions
 pub mod migration;
+/// Notification settings
 pub mod notifications;
+/// Daemon output settings
 pub mod output;
+/// Daemon recording settings
 pub mod recording;
+/// Module responsible for fetching inside and mutating the settings
 pub mod registry;
+/// Module responsbile for extracting and setting up the schema from `settings.toml`
 pub mod schema;
+/// Shortcut settings
 pub mod shortcut;
+/// Tray settings
 pub mod tray;
 
+/// The main settings struct that is stored inside users `~/.config` directory
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserSettings {
+    /// The current version of the settings, will be used to migrate to newer ones (e.g. to add
+    /// fields)
     pub v: semver::Version,
+    /// API settings
     pub api: ApiSettings,
+    /// Daemon recording settings
     pub recording: RecordingSettings,
+    /// Daemon output settings
     pub output: OutputSettings,
+    /// Shortcut settings
     pub shortcuts: ShortcutsSettings,
+    /// Game discovery settings
     pub game_discovery: GameDiscovery,
+    /// Notification settings
     pub notification: NotificationSettings,
+    /// Tray settings
     pub tray: TraySettings,
 }
 
@@ -62,15 +77,15 @@ impl Default for UserSettings {
     }
 }
 
-// struct to first extract version
+/// Struct to first extracted version
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Ver {
-    pub v: semver::Version,
+    v: semver::Version,
 }
 
 impl UserSettings {
-    // Basically this checks if a config file already exists
-    // If it does read from it, otherwise create default.
+    /// Basically this checks if a config file already exists
+    /// If it does read from it, otherwise create default.
     pub fn load() -> Result<Self, WayclipError> {
         let file = Self::config_path()?;
 
@@ -93,6 +108,7 @@ impl UserSettings {
         }
     }
 
+    /// Stores the current UserSettings onto the disk
     pub fn save_to_local_disk(&self) -> Result<(), WayclipError> {
         let file = Self::config_path()?;
         // Ensure all parent folders exist
@@ -104,6 +120,7 @@ impl UserSettings {
         Ok(())
     }
 
+    /// Updates a set key with a serde_json::Value
     pub fn set_value(&mut self, key: &str, value: serde_json::Value) -> Result<(), WayclipError> {
         let (_, def) = SettingsRegistry::find_by_key(key)
             .ok_or_else(|| WayclipError::NotFound(format!("No such key: {key}").into()))?;
@@ -120,6 +137,7 @@ impl UserSettings {
         Ok(())
     }
 
+    /// Updates a set key with a &str
     pub fn set_str(&mut self, key: &str, value: &str) -> Result<(), WayclipError> {
         let (_, def) = SettingsRegistry::find_by_key(key)
             .ok_or_else(|| WayclipError::NotFound(format!("No such key: {key}").into()))?;
@@ -136,6 +154,7 @@ impl UserSettings {
         Ok(())
     }
 
+    /// Gets a certain key's value
     pub fn get<R: DeserializeOwned + Send + 'static + Display>(
         &self,
         key: &str,
@@ -152,27 +171,23 @@ impl UserSettings {
         SettingsRegistry::get_value(self, &target_path)
     }
 
-    pub fn with_recording_settings(&mut self, recording_settings: RecordingSettings) {
-        self.recording = recording_settings;
-    }
+    // pub fn with_recording_settings(&mut self, recording_settings: RecordingSettings) {
+    //     self.recording = recording_settings;
+    // }
+    // pub fn with_output_settings(&mut self, output_settings: OutputSettings) {
+    //     self.output = output_settings;
+    // }
+    // pub fn with_api_settings(&mut self, api_settings: ApiSettings) {
+    //     self.api = api_settings;
+    // }
+    // pub fn with_shortcut_settings(&mut self, shortcut_settings: ShortcutsSettings) {
+    //     self.shortcuts = shortcut_settings;
+    // }
+    // pub fn with_game_discovery_settings(&mut self, discovery_settings: GameDiscovery) {
+    //     self.game_discovery = discovery_settings;
+    // }
 
-    pub fn with_output_settings(&mut self, output_settings: OutputSettings) {
-        self.output = output_settings;
-    }
-
-    pub fn with_api_settings(&mut self, api_settings: ApiSettings) {
-        self.api = api_settings;
-    }
-
-    pub fn with_shortcut_settings(&mut self, shortcut_settings: ShortcutsSettings) {
-        self.shortcuts = shortcut_settings;
-    }
-
-    pub fn with_game_discovery_settings(&mut self, discovery_settings: GameDiscovery) {
-        self.game_discovery = discovery_settings;
-    }
-
-    // Hardcoded path because yes.
+    /// Hardcoded path at which the `config.json` file is located
     pub fn config_path() -> Result<PathBuf, WayclipError> {
         Ok(config_dir()
             .expect("No config dir found..")

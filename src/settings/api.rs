@@ -2,11 +2,14 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use url::Url;
 
-pub const DEFAULT_API_URL: &str = "https://api.wayclip.com";
+const DEFAULT_API_URL: &str = "https://api.wayclip.com";
 
+/// API settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiSettings {
+    /// If the APP is allowed to make network requests
     pub enabled: bool,
+    /// The URL at which the API is located
     pub url: Url,
 }
 

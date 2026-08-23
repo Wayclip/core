@@ -19,6 +19,10 @@ use crate::{
 use std::{os::unix::fs::MetadataExt, path::PathBuf};
 
 impl LocalClip {
+    /// We can create a new LocalClip. We still need to pass in some parameters like the bitrate,
+    /// and such since we cant trust that what we extract from settings right now will match with
+    /// what it was recorded with. This method also calculates the file size in Mb, as well as
+    /// duration (if it was not passed in)
     #[allow(clippy::too_many_arguments)]
     pub async fn new(
         name: &str,
@@ -68,30 +72,31 @@ impl LocalClip {
         Ok(data)
     }
 
-    /// Name
+    /// Allows us to set the name in the clip & update metadata
+    /// By the way, this will only edit the name inside metadata.
+    /// For now, we keep the file name and clip name separate.
+    /// This is done mainly because when you upload a clip you probably want the name to look
+    /// nice, which is what is stored inside the metadata; however, we are not able to use same
+    /// name as a file name - it will look and parse horribly. We could theoretically parse it
+    /// and sanitise, but then name and file_name become very unsynced.
     pub fn set_name(&mut self, new_name: String) -> Result<(), WayclipError> {
-        // By the way, this will only edit the name inside metadata.
-        // For now, we keep the file name and clip name separate.
-        // This is done mainly because when you upload a clip you probably want the name to look
-        // nice, which is what is stored inside the metadata; however, we are not able to use same
-        // name as a file name - it will look and parse horribly. We could theoretically parse it
-        // and sanitise, but then name and file_name become very unsynced.
         self.name = new_name;
         self.update_metadata()
     }
 
-    /// Game Type
+    /// Allows us to set the game type in the clip & update metadata
     pub fn set_game_type(&mut self, new_game_type: Option<ClipsGames>) -> Result<(), WayclipError> {
         self.detected_game = new_game_type;
         self.update_metadata()
     }
 
-    /// Tags
+    /// Allows us to set the tags in the clip & update metadata
     pub fn set_local_tags(&mut self, tags: Vec<ClipsTag>) -> Result<(), WayclipError> {
         self.clip_tags = tags;
         self.update_metadata()
     }
 
+    /// Allows us to add a tag to the clip & update metadata
     pub fn add_local_tag(
         &mut self,
         name: String,
@@ -101,18 +106,21 @@ impl LocalClip {
         self.update_metadata()
     }
 
+    /// Allows us to remove a tag to the clip & update metadata
     pub fn remove_local_tag(&mut self, tag: &str) -> Result<(), WayclipError> {
         self.clip_tags.retain(|value| value.name != tag);
         self.update_metadata()
     }
 
-    /// Like
+    /// Allows us to toggle like & update metadata
     pub fn toggle_local_like(&mut self) -> Result<(), WayclipError> {
         self.liked = !self.liked;
         self.update_metadata()
     }
 
-    /// Trim
+    /// Allows us to trim & update metadata
+    /// This method will also generate the new metadata file if the method is `Copy`, as well as
+    /// generate the new preview no matter what.
     pub async fn trim(
         &mut self,
         preview_generator: &impl PreviewGenerator,
@@ -163,13 +171,15 @@ impl LocalClip {
         self.update_metadata()
     }
 
-    /// Hosted
+    /// Allows us to remove hosted connected & update metadata
     pub fn remove_hosted_connection(&mut self) -> Result<(), WayclipError> {
         self.uploaded_at = None;
         self.uploaded_id = None;
         self.update_metadata()
     }
 
+    /// Allows us to upload our local clip, assign the hosted_id & update metadata
+    /// This method is not responsible, however, for checking the user limits
     pub async fn upload(&mut self, clip_visibility: ClipVisibility) -> Result<(), WayclipError> {
         let settings = UserSettings::load()?;
         let mut clips_client = ClipsHttpClient::new(settings.api.url)?;

@@ -20,32 +20,55 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+/// Method with which trimming clips is done
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SaveMethod {
+    /// Replace current file
     Replace,
+    /// Copy & make new
     Copy,
 }
 
+/// The data stored in the metadata about a local clip
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LocalClip {
+    /// The name of clip
     pub name: String,
+    /// The path for the video file
     pub video_path: PathBuf,
+    /// The path for the metadata file
     pub metadata_path: PathBuf,
+    /// The path for the preview file
     pub preview_path: PathBuf,
+    /// Time created at
     pub created_at: DateTime<Utc>,
+    /// Time modified at
     pub modified_at: Option<DateTime<Utc>>,
+    /// Time uploaded at (or None if still local)
     pub uploaded_at: Option<DateTime<Utc>>,
+    /// Uploaded ID (or None if still local)
     pub uploaded_id: Option<String>,
+    /// The tags of a clip
     pub clip_tags: Vec<ClipsTag>,
+    /// If clip is liked
     pub liked: bool,
+    /// Start time of clip (kinda redundant rn)
     pub clip_start_ms: u64,
+    /// End time of clip (kinda redundant rn)
     pub clip_end_ms: u64,
+    /// Duration of clip
     pub file_duration_ms: u64,
+    /// The file size of clip
     pub file_size_mb: u64,
+    /// Format clip was recorded in (mkv/mp4)
     pub video_format: VideoFormat,
+    /// Bitrate clip was recorded in
     pub bitrate_kbps: Bitrate,
+    /// Resolution clip was recorded in
     pub resolution: Resolution,
+    /// FPs clip was recorded in
     pub fps: Fps,
+    /// The GameType assosciated with this clip
     pub detected_game: Option<ClipsGames>,
 }
 

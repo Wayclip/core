@@ -5,6 +5,7 @@ use wayclip_global_hotkey::hotkey::{Code, Modifiers};
 
 // We are basically re-defining the crossterm's structs to be serializable, so this
 // struct can be shared across all, cli & gui without any issues.
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub enum WayclipKeyCode {
     Char(char),
@@ -204,10 +205,13 @@ impl From<WayclipKeyCode> for Code {
     }
 }
 
+/// The combination of keyboard buttons user has to enter to trigger an action
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct WayclipKeyCombo {
+    /// There has to be a key code, like 'C'
     pub key_code: WayclipKeyCode,
+    /// And a set of modifiers such as 'ALT' + 'WIN'
     pub key_modifiers: WayclipKeyModifiers,
 }
 
@@ -222,6 +226,7 @@ impl std::fmt::Display for WayclipKeyCombo {
 }
 
 impl WayclipKeyCombo {
+    /// Method to create a new combo
     pub fn new(key_code: WayclipKeyCode, key_modifiers: WayclipKeyModifiers) -> Self {
         Self {
             key_code,
@@ -229,6 +234,7 @@ impl WayclipKeyCombo {
         }
     }
 
+    /// Method to build the trigger
     pub fn build_trigger(&self) -> String {
         self.to_string()
     }
@@ -272,11 +278,16 @@ impl FromStr for WayclipKeyCombo {
 // This bitflags is so that i can do multiple at same time like
 // WayclipKeyModifiers::SHIFT | WayclipKeyModifiers::ALT
 bitflags::bitflags! {
+    #[allow(missing_docs)]
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct WayclipKeyModifiers: u8 {
+        #[allow(missing_docs)]
         const SHIFT = 0b0001;
+        #[allow(missing_docs)]
         const CTRL = 0b0010;
+        #[allow(missing_docs)]
         const ALT = 0b0100;
+        #[allow(missing_docs)]
         const META = 0b1000;
     }
 }

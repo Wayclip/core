@@ -2,27 +2,34 @@ use crate::models::error::WayclipError;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, path::PathBuf, str::FromStr, time::Duration};
 
-pub const DEFAULT_CONFIG_PATH: &str = "wayclip/config.json";
-pub const DEFAULT_PREVIEW_DIRECTORY: &str = "Videos/wayclip/";
-pub const DEFAULT_CLIP_DIRECTORY: &str = "Videos/wayclip/";
-pub const DEFAULT_METADATA_DIRECTORY: &str = "Videos/wayclip/";
-pub const DEFAULT_OUTPUT_NAME_FORMAT: &str = "wayclip_{game}_%Y-%m-%d_%H-%M-%S";
-pub const DEFAULT_OUTPUT_VIDEO_FORMAT: VideoFormat = VideoFormat::MKV;
+const DEFAULT_PREVIEW_DIRECTORY: &str = "Videos/wayclip/";
+const DEFAULT_CLIP_DIRECTORY: &str = "Videos/wayclip/";
+const DEFAULT_METADATA_DIRECTORY: &str = "Videos/wayclip/";
+const DEFAULT_OUTPUT_NAME_FORMAT: &str = "wayclip_{game}_%Y-%m-%d_%H-%M-%S";
+const DEFAULT_OUTPUT_VIDEO_FORMAT: VideoFormat = VideoFormat::MKV;
 // 0 means unlimited
-pub const DEFAULT_MAX_SIZE_MB: u64 = 0;
-pub const DEFAULT_MAX_CLIPS: u64 = 0;
-pub const DEFAULT_PRUNE: Prune = Prune::Disabled;
+const DEFAULT_MAX_SIZE_MB: u64 = 0;
+const DEFAULT_MAX_CLIPS: u64 = 0;
+const DEFAULT_PRUNE: Prune = Prune::Disabled;
 
+/// The Daemon Output Settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OutputSettings {
+    /// Name formatting to follow
     pub name_format: String,
+    /// What directory to save clips to
     pub clip_directory: Directory,
+    /// What directory to save previews to
     pub preview_directory: Directory,
+    /// What directory to save metadata to
     pub metadata_directory: Directory,
+    /// The local user-set storage limits
     pub limit: LimitSettings,
+    /// The video format in which to save
     pub video_format: VideoFormat,
 }
 
+/// A wrapper for a directory
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Directory(pub PathBuf);
 
@@ -53,10 +60,14 @@ impl Display for Directory {
     }
 }
 
+/// Settings for local storage limits
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LimitSettings {
+    /// Limit for the maximum size of the sum of all clips
     pub max_size_mb: u64,
+    /// Limit for the maximum number of clips
     pub max_clips: u64,
+    /// Prune method
     pub prune: Prune,
 }
 
@@ -70,13 +81,19 @@ impl Default for LimitSettings {
     }
 }
 
+/// A method for pruning. i.e. what strategy to follow when deleting old clips
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Prune {
+    /// Do not delete clips
     Disabled,
+    /// Delete clips until under the size
     SizeMb(u64),
+    /// Delete clips until under the size
     Clips(usize),
     // To be clear, the S means seconds and isnt a typo...
+    /// Delete all clips above the set duration
     DurationS(u64),
+    /// Delete all clips older than set age
     Age(Age),
 }
 
@@ -112,19 +129,19 @@ impl FromStr for Prune {
         }
 
         // Handle DurationS
-        if let Some(rest) = s.strip_prefix("Longer than ") {
-            if let Some(num_str) = rest.strip_suffix("s") {
-                let num = num_str.parse::<u64>()?;
-                return Ok(Prune::DurationS(num));
-            }
+        if let Some(rest) = s.strip_prefix("Longer than ")
+            && let Some(num_str) = rest.strip_suffix("s")
+        {
+            let num = num_str.parse::<u64>()?;
+            return Ok(Prune::DurationS(num));
         }
 
         // Handle Age
-        if let Some(rest) = s.strip_prefix("Older than ") {
-            if let Some(age_str) = rest.strip_suffix(" from now") {
-                let age = age_str.parse::<Age>()?;
-                return Ok(Prune::Age(age));
-            }
+        if let Some(rest) = s.strip_prefix("Older than ")
+            && let Some(age_str) = rest.strip_suffix(" from now")
+        {
+            let age = age_str.parse::<Age>()?;
+            return Ok(Prune::Age(age));
         }
 
         Err(WayclipError::Validation(
@@ -133,15 +150,21 @@ impl FromStr for Prune {
     }
 }
 
+/// Age struct
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Age {
+    /// Number of months
     pub months: u64,
+    /// Number of weeks
     pub weeks: u64,
+    /// Number of days
     pub days: u64,
+    /// Number of hours
     pub hours: u64,
 }
 
 impl Age {
+    /// Method to calculate the duration from the Age struct
     pub fn get_duration(&self) -> Duration {
         let (months, weeks, days, hours) = (self.months, self.weeks, self.days, self.hours);
         Duration::from_hours(hours + days * 24 + weeks * 7 * 24 + months * 30 * 24)
@@ -194,6 +217,9 @@ impl FromStr for Age {
     }
 }
 
+/// The format in which to save clips in
+/// P.S. All clips are initially recorded in MKV no matter what
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum VideoFormat {
     MP4,
@@ -226,6 +252,7 @@ impl std::fmt::Display for VideoFormat {
 }
 
 impl VideoFormat {
+    /// Get the gstreamer mux element
     pub fn get_mux(&self) -> &str {
         match self {
             VideoFormat::MKV => "matroskamux",
@@ -234,6 +261,7 @@ impl VideoFormat {
         }
     }
 
+    /// Get the file extension
     pub fn get_extension(&self) -> &str {
         match self {
             VideoFormat::MKV => "mkv",
@@ -242,6 +270,7 @@ impl VideoFormat {
         }
     }
 
+    /// Get the mime string for http requests
     pub fn get_mime_str(&self) -> &str {
         match self {
             VideoFormat::MP4 => "video/mp4",

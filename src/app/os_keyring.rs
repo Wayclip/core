@@ -3,6 +3,9 @@ use keyring::Entry;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::json;
 
+/// An empty struct acting as a wrapper around the actions assosciated with keyrings.
+/// Every method here has to be called in a `blocking` task.
+/// We also use the native store for keyring and the service + username entries are hardcoded.
 pub struct OsKeyring;
 
 const SERVICE: &str = "com.wayclip.cli";
@@ -16,6 +19,7 @@ impl OsKeyring {
         Ok(entry)
     }
 
+    /// A method that allows us to store any data that can be serialised inside the keyring
     pub async fn store<T>(&self, data: T) -> Result<(), WayclipError>
     where
         T: Serialize + Send + 'static,
@@ -30,6 +34,8 @@ impl OsKeyring {
         .await?
     }
 
+    /// A method that allows us to retrieve any data that can be deserialised into an owned object
+    /// from inside the keyring
     pub async fn get<T>(&self) -> Result<Option<T>, WayclipError>
     where
         T: DeserializeOwned + Send + 'static,
@@ -46,6 +52,7 @@ impl OsKeyring {
         .await?
     }
 
+    /// A method that allows us to clear all the data stored inside the keyring
     pub async fn clear(&self) -> Result<(), WayclipError> {
         tokio::task::spawn_blocking(move || {
             let entry = Self::get_entry()?;

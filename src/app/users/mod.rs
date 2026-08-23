@@ -19,6 +19,8 @@ pub struct Users;
 
 // TODO: Remove 'get' since I dont want to make it feel like its POST/GET
 impl Users {
+    /// This method sends a request to the API to remove the current session token.
+    /// The `auth_client` will _theoretically_ also remove them from the keyring
     /// Although, this method is located in Users App wrapper, it actually uses the
     /// AuthenticationHttpClient internally.
     pub async fn logout() -> Result<(), WayclipError> {
@@ -27,6 +29,9 @@ impl Users {
         auth_client.logout().await
     }
 
+    /// This method sends a request to the API to intiate the login procedure using the device code.
+    /// This will return a device code, user code and and we have to prompt user to go and login on
+    /// the website, after which they enter the user code.
     /// Although, this method is located in Users App wrapper, it actually uses the
     /// AuthenticationHttpClient internally.
     pub async fn init() -> Result<GetAuthDeviceResponse, WayclipError> {
@@ -35,6 +40,8 @@ impl Users {
         auth_client.init().await
     }
 
+    /// After user has entered the user code inside the website, the device login session gets
+    /// updated, and the poll returns the tokens that are then stored inside the keyring
     /// Although, this method is located in Users App wrapper, it actually uses the
     /// AuthenticationHttpClient internally.
     pub async fn poll(interval_s: u32, device_code: String) -> Result<TokensStore, WayclipError> {
@@ -43,12 +50,14 @@ impl Users {
         auth_client.poll(interval_s, device_code).await
     }
 
+    /// If user is logged in, he can fetch his personal account information
     pub async fn get_me() -> Result<UsersResponse, WayclipError> {
         let settings = UserSettings::load()?;
         let mut users_client = UsersHttpClient::new(settings.api.url)?;
         users_client.me().await
     }
 
+    /// If user is logged in, he can fetch his information about storage limits
     pub async fn get_limit() -> Result<UsersLimitResponse, WayclipError> {
         let settings = UserSettings::load()?;
         let mut users_client = UsersHttpClient::new(settings.api.url)?;
@@ -56,10 +65,12 @@ impl Users {
     }
 }
 
+/// This struct allows us to store the user and limit data in one place
+/// This struct also implements Display, allowing to be displayed in the CLI
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UsersInfo {
-    pub user: UsersResponse,
-    pub limit: UsersLimitResponse,
+    user: UsersResponse,
+    limit: UsersLimitResponse,
 }
 
 impl Display for UsersInfo {

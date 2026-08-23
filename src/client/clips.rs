@@ -21,25 +21,34 @@ use serde_json::json;
 use std::{mem::discriminant, path::PathBuf, sync::Arc};
 use tokio::fs;
 
+/// This struct is a submodule of WayclipClient, responsbile for HTTP calls related to Clips
+/// managements.
 #[derive(Clone)]
 pub struct ClipsHttpClient {
     client: WayclipClient,
 }
 
+/// This enum allows us to pass in only the required fields to be editted, when calling `patch`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PatchClipField {
+    /// Edit clip visibility
     Visibility(ClipVisibility),
+    /// Edit name
     Name(String),
+    /// Edit tags
     Tags(Vec<ClipsTag>),
+    /// Edit game type
     Game(Option<ClipsGames>),
 }
 
 impl ClipsHttpClient {
+    /// Create a new client
     pub fn new(api_url: url::Url) -> Result<Self, WayclipError> {
         let client = WayclipClient::new(api_url)?;
         Ok(Self { client })
     }
 
+    /// Call to query the currently logged-in user's clips
     pub async fn query_me_clips(
         &mut self,
         query: FullQueryWeb,
@@ -56,6 +65,7 @@ impl ClipsHttpClient {
         response.into_inner()
     }
 
+    /// Call to delete a specific clip that user owns
     pub async fn delete(&mut self, clip_id: &str) -> Result<(), WayclipError> {
         self.client
             .with_credentials()
@@ -65,6 +75,7 @@ impl ClipsHttpClient {
         Ok(())
     }
 
+    /// Call to patch a clip, but only w specific clips
     pub async fn patch(
         &mut self,
         new_values: Vec<PatchClipField>,
@@ -112,12 +123,9 @@ impl ClipsHttpClient {
         Ok(())
     }
 
-    // // make sure to save ID so we can reference it later
-    // let now = chrono::Utc::now();
-    // self.uploaded_at = Some(now);
-    // self.uploaded_id = Some(result.clip_id);
-    // self.update_local_metadata_file()?;
-
+    /// Method to upload the clip
+    /// This method does not handle updating the local metadata or verifying the limits, it only
+    /// constructs the client with the multipart builder and sends a call
     pub async fn upload(
         &mut self,
         video_format: VideoFormat,
