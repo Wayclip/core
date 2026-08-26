@@ -47,10 +47,17 @@ pub struct WayclipClient {
 impl WayclipClient {
     /// General method to construct a WayclipClient
     pub fn new(api_url: url::Url) -> Result<Self, WayclipError> {
+        let tld = api_url
+            .host_str()
+            .ok_or_else(|| WayclipError::NotFound("No host found in URL".into()))?
+            .split(".")
+            .last()
+            .ok_or_else(|| WayclipError::NotFound("No last element".into()))?;
+
         let http_client = reqwest::ClientBuilder::new()
             .user_agent("Wayclip")
             // TODO: Unsafe
-            .danger_accept_invalid_certs(api_url.as_str().ends_with(".test"))
+            .danger_accept_invalid_certs(tld == "test")
             .build()?;
 
         Ok(Self {
