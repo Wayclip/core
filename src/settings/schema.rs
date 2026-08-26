@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::LazyLock};
 
-const SCHEMA_TOML: &str = include_str!("../../static/settings.toml");
+const SCHEMA_TOML: &str = include_str!("../../assets/settings.toml");
 /// The global schema of the settings.toml
 pub static SCHEMA: LazyLock<GlobalSchema> = LazyLock::new(|| {
-    toml::from_str(SCHEMA_TOML).expect("Failed to parse static/settings.toml. Check TOML syntax.")
+    toml::from_str(SCHEMA_TOML).expect("Failed to parse assets/settings.toml. Check TOML syntax.")
 });
 
 /// Global schema struct

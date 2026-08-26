@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt, str::FromStr, sync::OnceLock};
 use strum::IntoEnumIterator;
 use strum_macros::{AsRefStr, EnumIter};
 
-const GAMES_TOML_SRC: &str = include_str!("../../../static/games.toml");
+const GAMES_TOML_SRC: &str = include_str!("../../../assets/games.toml");
 const GENERIC_IGNORE: &[&str] = &[
     "java", "javaw", "python", "python3", "wine", "wine64", "proton", "steam",
 ];
