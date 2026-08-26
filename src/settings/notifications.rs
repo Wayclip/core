@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+/// Save success sound for being used in the daemon
+pub const SOUND_SAVE_SUCCESS: &[u8] = include_bytes!("../../static/sounds/success.wav");
+/// Save error sound for being used in the daemon
+pub const SOUND_SAVE_ERROR: &[u8] = include_bytes!("../../static/sounds/error.wav");
+
 /// Settings for sending sounds on events
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SoundsNotification {
