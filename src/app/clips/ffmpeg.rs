@@ -1,9 +1,11 @@
 use crate::models::error::WayclipError;
 use gstreamer::ClockTime;
 use gstreamer_pbutils::Discoverer;
-use rust_ffmpeg::{Codec, FFmpegBuilder};
-use std::path::{Path, PathBuf};
-use tokio::fs;
+use std::{
+    path::{Path, PathBuf},
+    time::Duration,
+};
+use tokio::{fs, process::Command};
 use url::Url;
 
 /// An empty struct, created to make sure all the FFmpeg actions stay in one place.
@@ -18,15 +20,36 @@ impl Ffmpeg {
         new_start_ms: u64,
         new_end_ms: u64,
     ) -> Result<PathBuf, WayclipError> {
+        if new_start_ms >= new_end_ms {
+            return Err(WayclipError::Validation(
+                "Start timestamp must be less than end timestamp".into(),
+            ));
+        }
+
         let duration_ms = new_end_ms - new_start_ms;
 
-        // Check if we are writting to same location or not.
+        // Check if we are writing to same location or not.
         // If we are, then we have to make a temporary file
-        let overwrite = target_path == source_path;
+        let source_parent_raw = source_path
+            .parent()
+            .ok_or_else(|| WayclipError::NotFound("No source parent directory".into()))?;
+
+        let target_parent_raw = target_path
+            .parent()
+            .ok_or_else(|| WayclipError::NotFound("No target parent directory".into()))?;
+
+        let source_parent = tokio::fs::canonicalize(source_parent_raw)
+            .await
+            .unwrap_or_else(|_| source_parent_raw.to_path_buf());
+
+        let target_parent = tokio::fs::canonicalize(target_parent_raw)
+            .await
+            .unwrap_or_else(|_| target_parent_raw.to_path_buf());
+
+        let overwrite =
+            source_parent == target_parent && source_path.file_name() == target_path.file_name();
+
         let to_path = if overwrite {
-            let parent = source_path
-                .parent()
-                .ok_or_else(|| WayclipError::NotFound("No parent directory".into()))?;
             let stem = source_path
                 .file_stem()
                 .ok_or_else(|| WayclipError::NotFound("No file stem".into()))?
@@ -35,25 +58,35 @@ impl Ffmpeg {
                 .extension()
                 .ok_or_else(|| WayclipError::NotFound("No extension".into()))?
                 .to_string_lossy();
-            parent.join(format!("{}_trim_tmp.{}", stem, ext))
+            source_parent.join(format!("{}_trim_tmp.{}", stem, ext))
         } else {
             target_path.clone()
         };
 
-        FFmpegBuilder::new()?
-            .input(
-                rust_ffmpeg::Input::new(source_path.clone())
-                    .seek(rust_ffmpeg::Duration::from_millis(new_start_ms))
-                    .duration(rust_ffmpeg::Duration::from_millis(duration_ms)),
-            )
-            .output(
-                rust_ffmpeg::Output::new(to_path.clone())
-                    .video_codec(Codec::copy())
-                    .audio_codec(Codec::copy()),
-            )
-            .overwrite()
-            .run()
-            .await?;
+        let start_sec = format!("{:.3}", new_start_ms as f64 / 1000.0);
+        let duration_sec = format!("{:.3}", duration_ms as f64 / 1000.0);
+
+        let mut cmd = Command::new("ffmpeg");
+        cmd.kill_on_drop(true);
+        cmd.args(["-y", "-ss", &start_sec, "-i"])
+            .arg(source_path)
+            .args(["-t", &duration_sec, "-c", "copy"])
+            .arg(&to_path);
+
+        let output = tokio::time::timeout(Duration::from_secs(60), cmd.output())
+            .await
+            .map_err(|_| WayclipError::CLI("FFmpeg trim timed out".into()))?
+            .map_err(|e| WayclipError::CLI(format!("Failed to run FFmpeg: {e}").into()))?;
+
+        if !output.status.success() {
+            return Err(WayclipError::CLI(
+                format!(
+                    "FFmpeg trim failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                )
+                .into(),
+            ));
+        }
 
         if overwrite {
             fs::rename(to_path, target_path).await?;

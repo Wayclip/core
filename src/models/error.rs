@@ -90,10 +90,6 @@ pub enum WayclipError {
     #[error("Regex error: {0}")]
     Regex(#[from] regex::Error),
 
-    /// Handles errors thrown by rust_ffmpeg
-    #[error("FFmpeg error occurred: {0}")]
-    FFmpeg(#[from] rust_ffmpeg::Error),
-
     /// Handles errors thrown by url
     #[error("URL Parse error occurred: {0}")]
     URL(#[from] url::ParseError),

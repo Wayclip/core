@@ -52,7 +52,6 @@ itertools = "0.15.0"
 keyring = { version = "4.1.2", features = ["v1", "cli"] }
 nanoid = "0.5.0"
 reqwest = { version = "0.13.4", features = ["json", "multipart"] }
-rust_ffmpeg = "1.0.0"
 sd-notify = "0.5.0"
 url = { version = "2.5.8", features = ["serde"] }
 wayclip-global-hotkey = "0.7.0"
