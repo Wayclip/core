@@ -30,6 +30,8 @@ pub struct UsersResponse {
     pub username: String,
     /// The email of user
     pub email: String,
+    /// The about me description of user
+    pub about_me: Option<String>,
     /// The locale, e.g. `en-US`, of user
     pub locale: String,
     /// The avatar's URL of user

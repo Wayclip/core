@@ -1,10 +1,11 @@
 [Unit]
 Description=Wayclip Daemon
-After=pipewire.service generic-graphical-session.target
+After=pipewire.service xdg-desktop-portal.service graphical-session.target
+Wants=xdg-desktop-portal.service
 PartOf=graphical-session.target
 
 [Service]
-ExecStart=/path/to/wayclip-cli-linux --daemon
+ExecStart=PATH/TO/wayclip-cli-linux --daemon
 Restart=on-failure
 RestartSec=5s
 Type=notify
