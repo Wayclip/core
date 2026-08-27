@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use crate::models::error::WayclipError;
 use nutype::nutype;
 

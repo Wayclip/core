@@ -40,4 +40,4 @@ This library provides useful types, models, and methods for the API & APP to use
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE.md).
