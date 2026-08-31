@@ -94,9 +94,7 @@ impl Display for UsersInfo {
             writeln!(f, "Verified: No")?;
         }
 
-        if let Some(ref avatar) = self.user.avatar_url {
-            writeln!(f, "Avatar: {}", avatar)?;
-        }
+        writeln!(f, "Avatar: {}", self.user.avatar_url)?;
 
         if let Some(banned_at) = self.user.banned_at {
             let banned_local = banned_at.with_timezone(&Local);

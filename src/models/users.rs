@@ -35,7 +35,7 @@ pub struct UsersResponse {
     /// The locale, e.g. `en-US`, of user
     pub locale: String,
     /// The avatar's URL of user
-    pub avatar_url: Option<String>,
+    pub avatar_url: String,
     /// The storage limit that user
     pub storage_limit_id: Option<String>,
     /// The comment visibility to be used by default
