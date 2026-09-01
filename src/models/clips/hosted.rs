@@ -72,8 +72,8 @@ pub struct ClipsResponse {
     pub uploaded_at: DateTime<FixedOffset>,
     /// Game assosciated with clip
     pub detected_game: Option<ClipsGames>,
-    /// Local of clip, derived from owner's locale
-    pub locale: String,
+    /// The location of the clip of user's choice
+    pub location: String,
     /// Visibility of clip
     pub clip_visibility: ClipVisibility,
     /// Visibility/Access of comments

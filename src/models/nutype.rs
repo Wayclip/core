@@ -185,7 +185,6 @@ macro_rules! validated_int {
     };
 }
 
-validated_string!(LocaleSanitised, as: "Locale", min: 2, max: 64, regex: r"^(?i)[a-z]{2,3}(?:-[a-z0-9]{2,8})*$", example: "en-US");
 validated_string!(UsernameSanitised, as: "Username", min: 3, max: 32, regex: r"^[a-zA-Z0-9_-]+$", example: "cool_user");
 validated_string!(RoleNameSanitised, as: "RoleName", min: 3, max: 100, regex: r"^[a-zA-Z0-9_-]+$", example: "admin");
 validated_string!(LimitNameSanitised, as: "LimitName", min: 3, max: 100, regex: r"^[a-zA-Z0-9_-]+$", example: "standard_tier");

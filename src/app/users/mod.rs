@@ -78,7 +78,8 @@ impl Display for UsersInfo {
         writeln!(f, "Username: {}", self.user.username)?;
         writeln!(f, "User ID: {}", self.user.user_id)?;
         writeln!(f, "Email: {}", self.user.email)?;
-        writeln!(f, "Locale: {}", self.user.locale)?;
+        writeln!(f, "Language: {}", self.user.language)?;
+        writeln!(f, "Location: {}", self.user.location)?;
 
         let created_local = self.user.created_at.with_timezone(&Local);
         writeln!(f, "Created: {}", created_local.format("%Y-%m-%d %H:%M:%S"))?;

@@ -19,6 +19,45 @@ pub struct UsersLimitResponse {
     pub used_mb: i64,
 }
 
+/// An enum responsobile for defining what search results will appear in a search engine
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub enum SearchIndexingVisibility {
+    /// No links
+    Hidden,
+    /// Only users' clips
+    Clips,
+    /// Only users' profile
+    Profile,
+    /// Both clips and profile
+    ProfileAndClips,
+}
+
+/// The notification settings that user will control, parsed as sea_orm::Value inside db
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct NotificationPreferences {
+    /// Send notification when a new follow occurs
+    pub user_follow: bool,
+    /// Send notification when a new clip is uploaded
+    pub clip_upload: bool,
+    /// Send notification when a new reaction is added to comment/clip
+    pub reaction_create: bool,
+    /// Send notification when a new comment is added under a comment/clip
+    pub comment_create: bool,
+}
+
+impl Default for NotificationPreferences {
+    fn default() -> Self {
+        Self {
+            user_follow: true,
+            clip_upload: true,
+            reaction_create: true,
+            comment_create: true,
+        }
+    }
+}
+
 /// The data of a user. Response recieved from `/users/me`
 /// Traits locked behind the `openapi` feature
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -32,12 +71,16 @@ pub struct UsersResponse {
     pub email: String,
     /// The about me description of user
     pub about_me: Option<String>,
-    /// The locale, e.g. `en-US`, of user
-    pub locale: String,
+    /// The language identifier
+    pub language: String,
+    /// The geo-location of user
+    pub location: String,
     /// The avatar's URL of user
     pub avatar_url: String,
     /// The storage limit that user
     pub storage_limit_id: Option<String>,
+    /// Setting affecting the search index visibility
+    pub search_indexing_visibility: SearchIndexingVisibility,
     /// The comment visibility to be used by default
     pub default_comment_visibility: CommentVisibility,
     /// Time of creation of user
