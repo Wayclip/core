@@ -13,23 +13,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use strum_macros::Display;
 
-/// Notification Metadata type. This will show up when a comment is left on a clip
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
-pub struct ClipsNewCommentNotificationMetadata {
-    /// Id of the new comment
-    pub comment_id: String,
-    /// Id of the clip
-    pub clip_id: String,
-    /// Content of comment
-    pub content: String,
-    /// If comment is replying to someone, this will deatermine if clip owner should get
-    /// notification or not
-    pub reply_to: Option<String>,
-    /// Time user has commented
-    pub commented_at: DateTime<FixedOffset>,
-}
-
 /// The request to leave a new comment
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
