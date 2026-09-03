@@ -35,8 +35,12 @@ pub enum SearchIndexingVisibility {
 }
 
 /// The notification settings that user will control, parsed as sea_orm::Value inside db
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[cfg_attr(
+    feature = "openapi",
+    derive(utoipa::ToSchema),
+    derive(sea_orm::FromJsonQueryResult)
+)]
 pub struct NotificationPreferences {
     /// Send notification when a new follow occurs
     pub user_follow: bool,
@@ -56,6 +60,12 @@ impl Default for NotificationPreferences {
             reaction_create: true,
             comment_create: true,
         }
+    }
+}
+
+impl From<serde_json::Value> for NotificationPreferences {
+    fn from(value: serde_json::Value) -> Self {
+        serde_json::from_value(value).unwrap_or_default()
     }
 }
 
@@ -94,6 +104,10 @@ pub struct UsersResponse {
     pub search_indexing_visibility: SearchIndexingVisibility,
     /// The comment visibility to be used by default
     pub default_comment_visibility: CommentVisibility,
+    /// The preferences for notifications
+    pub notification_preferences: NotificationPreferences,
+    /// Number of unread notifications
+    pub unread_notifications: i32,
     /// Time of creation of user
     pub created_at: DateTime<FixedOffset>,
     /// Time user was last updated
