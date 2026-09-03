@@ -9,7 +9,7 @@ use crate::{
         },
         error::WayclipError,
     },
-    settings::UserSettings,
+    settings::{DEFAULT_TIME_FORMAT, UserSettings},
 };
 use chrono::{DateTime, Local};
 use colored::ColoredString;
@@ -74,11 +74,11 @@ impl Display for SelectedClipInfo {
             writeln!(
                 f,
                 "Created: {}",
-                self.local.created.format("%Y-%m-%d %H:%M:%S")
+                self.local.created.format(DEFAULT_TIME_FORMAT)
             )?;
 
             if let Some(u) = self.local.uploaded {
-                writeln!(f, "Uploaded: {}", u.format("%Y-%m-%d %H:%M:%S"))?;
+                writeln!(f, "Uploaded: {}", u.format(DEFAULT_TIME_FORMAT))?;
             }
 
             writeln!(f, "Duration: {:.2}s", self.local.duration)?;

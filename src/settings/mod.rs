@@ -17,6 +17,8 @@ use std::{
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_CONFIG_PATH: &str = "wayclip/config.json";
+/// The time format to be used across all wayclip applications
+pub const DEFAULT_TIME_FORMAT: &str = "%Y-%m-%d %H:%M:%S%.3f %:z";
 
 /// API settings
 pub mod api;

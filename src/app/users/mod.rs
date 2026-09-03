@@ -10,7 +10,7 @@ use crate::{
         error::WayclipError,
         users::{UsersLimitResponse, UsersResponse},
     },
-    settings::UserSettings,
+    settings::{DEFAULT_TIME_FORMAT, UserSettings},
 };
 
 /// Basically a wrapper around UsersHttpClient. Not very useful as of right now, but could possibly
@@ -82,14 +82,14 @@ impl Display for UsersInfo {
         writeln!(f, "Location: {}", self.user.location)?;
 
         let created_local = self.user.created_at.with_timezone(&Local);
-        writeln!(f, "Created: {}", created_local.format("%Y-%m-%d %H:%M:%S"))?;
+        writeln!(f, "Created: {}", created_local.format(DEFAULT_TIME_FORMAT))?;
 
         if let Some(verified_at) = self.user.verified_at {
             let verified_local = verified_at.with_timezone(&Local);
             writeln!(
                 f,
                 "Verified: {}",
-                verified_local.format("%Y-%m-%d %H:%M:%S")
+                verified_local.format(DEFAULT_TIME_FORMAT)
             )?;
         } else {
             writeln!(f, "Verified: No")?;
@@ -99,7 +99,7 @@ impl Display for UsersInfo {
 
         if let Some(banned_at) = self.user.banned_at {
             let banned_local = banned_at.with_timezone(&Local);
-            writeln!(f, "Banned: {}", banned_local.format("%Y-%m-%d %H:%M:%S"))?;
+            writeln!(f, "Banned: {}", banned_local.format(DEFAULT_TIME_FORMAT))?;
         }
 
         writeln!(f, "\nStorage & Limits:")?;
