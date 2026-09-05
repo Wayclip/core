@@ -4,7 +4,7 @@ authors = ["konyogony <me@konyogony.dev>", "PadowYT2 <me@padow.dev>"]
 description = "Core module for the Wayclip ecosystem: models, settings, and methods for App"
 repository = "https://github.com/Wayclip/core"
 license = "MIT"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 readme = "README.md"
 
