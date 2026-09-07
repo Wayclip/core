@@ -186,6 +186,7 @@ macro_rules! validated_int {
 }
 
 validated_string!(UsernameSanitised, as: "Username", min: 3, max: 32, regex: r"^[a-zA-Z0-9_-]+$", example: "cool_user");
+validated_string!(PasskeyNameSanitised, as: "PasskeyName", min: 3, max: 64, regex: r"^[a-zA-Z0-9_ -]+$", example: "my_passkey");
 validated_string!(RoleNameSanitised, as: "RoleName", min: 3, max: 100, regex: r"^[a-zA-Z0-9_-]+$", example: "admin");
 validated_string!(LimitNameSanitised, as: "LimitName", min: 3, max: 100, regex: r"^[a-zA-Z0-9_-]+$", example: "standard_tier");
 validated_string!(ClipNameSanitised, as: "ClipName", min: 3, max: 100, regex: r"^[a-zA-Z0-9_ -]+$", example: "pentakill_clip");
