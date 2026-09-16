@@ -19,6 +19,9 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_CONFIG_PATH: &str = "wayclip/config.json";
 /// The time format to be used across all wayclip applications
 pub const DEFAULT_TIME_FORMAT: &str = "%Y-%m-%d %H:%M:%S%.3f %:z";
+/// Another time foramt to be used when displaying a date to user (Has to be converted to UTC, since
+/// the text is static)
+pub const UTC_TIME_FORMAT: &str = "%Y/%m/%d %H:%M (UTC)";
 
 /// API settings
 pub mod api;
