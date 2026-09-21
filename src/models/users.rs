@@ -93,7 +93,7 @@ pub struct UsersResponse {
     /// The about me description of user
     pub about_me: Option<String>,
     /// The language identifier
-    pub language: String,
+    pub language: SupportedLanguages,
     /// The geo-location of user
     pub location: String,
     /// The avatar's URL of user
