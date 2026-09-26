@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 /// `auth` module responsible for models relating to authentication, primarily via device and user
 /// code
 pub mod auth;
@@ -16,3 +18,8 @@ pub mod nutype;
 pub mod query;
 /// `users` module contains models used by API which contains the user & storage limit
 pub mod users;
+
+/// A global 'bytes' type
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct Bytes(Vec<u8>);

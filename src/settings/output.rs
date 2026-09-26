@@ -1,4 +1,4 @@
-use crate::models::error::WayclipError;
+use crate::models::{error::WayclipError, users::SupportedLanguages};
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, path::PathBuf, str::FromStr, time::Duration};
 
@@ -15,6 +15,8 @@ const DEFAULT_PRUNE: Prune = Prune::Disabled;
 /// The Daemon Output Settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OutputSettings {
+    /// The language to be displayed in (some) UI's
+    pub language: SupportedLanguages,
     /// Name formatting to follow
     pub name_format: String,
     /// What directory to save clips to
@@ -253,7 +255,7 @@ impl std::fmt::Display for VideoFormat {
 
 impl VideoFormat {
     /// Get the gstreamer mux element
-    pub fn get_mux(&self) -> &str {
+    pub fn get_mux(&self) -> &'static str {
         match self {
             VideoFormat::MKV => "matroskamux",
             VideoFormat::MP4 => "mp4mux",
@@ -262,7 +264,7 @@ impl VideoFormat {
     }
 
     /// Get the file extension
-    pub fn get_extension(&self) -> &str {
+    pub fn get_extension(&self) -> &'static str {
         match self {
             VideoFormat::MKV => "mkv",
             VideoFormat::MP4 => "mp4",
@@ -271,7 +273,7 @@ impl VideoFormat {
     }
 
     /// Get the mime string for http requests
-    pub fn get_mime_str(&self) -> &str {
+    pub fn get_mime_str(&self) -> &'static str {
         match self {
             VideoFormat::MP4 => "video/mp4",
             VideoFormat::MKV => "video/x-matroska",
@@ -293,6 +295,7 @@ impl Default for OutputSettings {
             .expect("No home directory was found..")
             .join(DEFAULT_METADATA_DIRECTORY);
         Self {
+            language: SupportedLanguages::default(),
             name_format: String::from(DEFAULT_OUTPUT_NAME_FORMAT),
             video_format: DEFAULT_OUTPUT_VIDEO_FORMAT,
             clip_directory: Directory(clip_directory),

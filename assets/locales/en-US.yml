@@ -1,0 +1,16 @@
+notification:
+  daemon_start:
+    summary: "Daemon has started"
+    body: "The Wayclip daemon was started and is currently recording"
+  daemon_stop:
+    summary: "Daemon has stopped"
+    body: "The Wayclip daemon has stopped recording"
+  save_success:
+    summary: "Saved new clip"
+    body: "A new clip was saved successfully: %{content}"
+  save_error:
+    summary: "Error saving clip"
+    body: "Error occurred while saving clip: %{content}"
+  test:
+    summary: "A test notification"
+    body: "Test: %{content}"
