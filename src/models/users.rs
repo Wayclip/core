@@ -1,7 +1,7 @@
 use crate::models::clips::hosted::CommentVisibility;
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
-use strum_macros::Display;
+use strum_macros::{AsRefStr, Display};
 
 /// The storage limit of a user. Response recieved from `/users/me/limit`
 /// Traits locked behind the `openapi` feature
@@ -70,12 +70,13 @@ impl From<serde_json::Value> for NotificationPreferences {
 }
 
 /// The available selection for the 'language' field for user
-#[derive(Serialize, Deserialize, Display, Clone, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Display, Clone, Debug, PartialEq, Eq, AsRefStr, Default)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[allow(missing_docs)]
 pub enum SupportedLanguages {
     #[serde(rename = "en-US")]
     #[strum(serialize = "en-US")]
+    #[default]
     EnUs,
 }
 

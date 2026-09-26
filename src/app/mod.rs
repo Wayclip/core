@@ -7,3 +7,7 @@ pub mod os_keyring;
 /// `users` module is used for handling user-related actions. These actions are quite limited, but
 /// they usually directly interact with the UsersHttpClient
 pub mod users;
+
+/// the `cache` module provides methods and data structures to efficiently store and cache items on
+/// your local disk. It uses a HashMap along with different keys to access any one piece of data.
+pub mod cache;

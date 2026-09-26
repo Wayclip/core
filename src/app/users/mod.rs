@@ -1,9 +1,5 @@
-use std::fmt::Display;
-
-use chrono::Local;
-use serde::{Deserialize, Serialize};
-
 use crate::{
+    app::cache::{Cache, USERS_ME_DATA_KEY, USERS_ME_DATA_TTL},
     client::{TokensStore, authentication::AuthenticationHttpClient, users::UsersHttpClient},
     models::{
         auth::device::GetAuthDeviceResponse,
@@ -12,6 +8,9 @@ use crate::{
     },
     settings::{DEFAULT_TIME_FORMAT, UserSettings},
 };
+use chrono::Local;
+use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 /// Basically a wrapper around UsersHttpClient. Not very useful as of right now, but could possibly
 /// expand when Users will interact with I/O or whatnot
@@ -52,9 +51,30 @@ impl Users {
 
     /// If user is logged in, he can fetch his personal account information
     pub async fn get_me() -> Result<UsersResponse, WayclipError> {
-        let settings = UserSettings::load()?;
-        let mut users_client = UsersHttpClient::new(settings.api.url)?;
-        users_client.me().await
+        // Initialise cache
+        let mut cache: Cache<UsersResponse> = Cache::init().await?;
+
+        // Try to hit cache
+        match cache.get_item(USERS_ME_DATA_KEY.to_string()).await? {
+            // Hit -> Return
+            Some(item) => Ok(item),
+            // Miss -> Fetch & Update value
+            None => {
+                let settings = UserSettings::load()?;
+                let mut users_client = UsersHttpClient::new(settings.api.url)?;
+                let users_response = users_client.me().await?;
+
+                cache
+                    .insert_item(
+                        USERS_ME_DATA_KEY.to_string(),
+                        users_response.clone(),
+                        USERS_ME_DATA_TTL,
+                    )
+                    .await?;
+
+                Ok(users_response)
+            }
+        }
     }
 
     /// If user is logged in, he can fetch his information about storage limits

@@ -118,6 +118,14 @@ type = "string"
 default = ""
 introduced_in = "0.1.0"
 
+[settings.output_language]
+key = "output.language"
+location = "output"
+field_name = "language"
+type = "supported_languages"
+default = "en-US"
+introduced_in = "0.1.4"
+
 [settings.output_name_format]
 key = "output.name_format"
 location = "output"
@@ -213,6 +221,30 @@ field_name = "discord_rich_presence"
 type = "bool"
 default = true
 introduced_in = "0.1.1"
+
+[settings.game_discovery_discord_rich_presence_enabled]
+key = "game_discovery.discord_rich_presence.enabled"
+location = "game_discovery.discord_rich_presence"
+field_name = "enabled"
+type = "bool"
+default = true
+introduced_in = "0.1.4"
+
+[settings.game_discovery_discord_rich_presence_enable_promo]
+key = "game_discovery.discord_rich_presence.enable_promo"
+location = "game_discovery.discord_rich_presence"
+field_name = "enable_promo"
+type = "bool"
+default = true
+introduced_in = "0.1.4"
+
+[settings.game_discovery_discord_rich_presence_display_profile]
+key = "game_discovery.discord_rich_presence.display_profile"
+location = "game_discovery.discord_rich_presence"
+field_name = "display_profile"
+type = "bool"
+default = true
+introduced_in = "0.1.4"
 
 [settings.notification_sounds_on_save_error]
 key = "notification.sounds.on_save_error"
@@ -337,4 +369,14 @@ changes = [
   { action = "insert", setting_id = "tray_show_exit" },
   { action = "insert", setting_id = "tray_show_status" },
   { action = "insert", setting_id = "tray_show_stats" },
+]
+
+[[versions]]
+version = "0.1.4"
+changes = [
+  { action = "remove", location = "game_discovery", field_name = "discord_rich_presence" },
+  { action = "insert", setting_id = "game_discovery_discord_rich_presence_enabled" },
+  { action = "insert", setting_id = "game_discovery_discord_rich_presence_enable_promo" },
+  { action = "insert", setting_id = "game_discovery_discord_rich_presence_display_profile" },
+  { action = "insert", setting_id = "output_language" },
 ]
