@@ -1,4 +1,5 @@
 use crate::models::error::WayclipError;
+use gstreamer::ClockTime;
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::{Display, Formatter},
@@ -50,6 +51,14 @@ pub struct VideoSettings {
     pub codec: VideoCodec,
     /// The bitrate at which its recorded
     pub bitrate_kbps: Bitrate,
+}
+
+impl VideoSettings {
+    /// A small method to convert the stored value of length in seconds direcrly into a gstreamer
+    /// ClockTime object
+    pub fn get_max_duration(&self) -> ClockTime {
+        ClockTime::from_seconds(self.length_seconds)
+    }
 }
 
 impl Default for VideoSettings {
