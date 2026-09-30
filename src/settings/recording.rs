@@ -2,6 +2,7 @@ use crate::models::error::WayclipError;
 use gstreamer::ClockTime;
 use serde::{Deserialize, Serialize};
 use std::{
+    borrow::Cow,
     fmt::{Display, Formatter},
     str::FromStr,
 };
@@ -301,12 +302,13 @@ impl std::fmt::Display for VideoCodec {
 
 impl VideoCodec {
     /// Get the gstreamer parser element
-    pub fn get_parser(&self) -> &str {
+    pub fn get_parser(&self) -> Cow<'static, str> {
         match self {
             VideoCodec::H264(_) => "h264parse",
             VideoCodec::H265(_) => "h265parse",
             VideoCodec::AV1(_) => "av1parse",
         }
+        .into()
     }
 
     /// Get the inner codec (backend) type
@@ -317,7 +319,7 @@ impl VideoCodec {
     }
 
     /// Get the gstreamer encoder element
-    pub fn get_encoder(&self) -> &str {
+    pub fn get_encoder(&self) -> Cow<'static, str> {
         match self {
             // https://gstreamer.freedesktop.org/documentation/nvcodec/nvh264enc.html?gi-language=rust
             VideoCodec::H264(CodecType::NVIDIA) => "nvh264enc",
@@ -340,6 +342,7 @@ impl VideoCodec {
             // https://gstreamer.freedesktop.org/documentation/aom/av1enc.html?gi-language=rust
             VideoCodec::AV1(CodecType::Software) => "av1enc",
         }
+        .into()
     }
 }
 
