@@ -2,7 +2,7 @@ use crate::{
     app::clips::query::ClipsQuery,
     models::{
         clips::{
-            games::ClipsGames,
+            games::Game,
             hosted::{ClipsStatusType, HostedClip},
             local::LocalClip,
             unified::{SelectedClip, UnifiedClip, UnifiedClipType},
@@ -22,7 +22,7 @@ use std::fmt::Display;
 pub struct LocalClipInfo {
     name: String,
     tags: Vec<ColoredString>,
-    game: Option<ClipsGames>,
+    game: Option<Game>,
     created: DateTime<Local>,
     uploaded: Option<DateTime<Local>>,
     duration: f32,
@@ -68,7 +68,7 @@ impl Display for SelectedClipInfo {
             }
 
             if let Some(ref game) = self.local.game {
-                writeln!(f, "Game: {:?}", game.display_name())?;
+                writeln!(f, "Game: {:?}", game.name)?;
             }
 
             writeln!(
@@ -141,7 +141,7 @@ impl From<&LocalClip> for LocalClipInfo {
                 .iter()
                 .map(|t| t.get_colored_string())
                 .collect::<Vec<_>>(),
-            game: local.detected_game,
+            game: local.detected_game.clone(),
             created: DateTime::from(local.created_at),
             duration: local.file_duration_ms as f32 / 1000.0,
             file_size_mb: local.file_size_mb,

@@ -3,7 +3,7 @@ use crate::{
     client::clips::ClipsHttpClient,
     models::{
         clips::{
-            games::ClipsGames,
+            games::Game,
             hosted::{ClipVisibility, ClipsNewMetadata},
             local::LocalClip,
             tags::{ClipsClipTagColor, ClipsTag},
@@ -30,7 +30,7 @@ impl LocalClip {
         video_path: PathBuf,
         preview_path: PathBuf,
         metadata_path: PathBuf,
-        detected_game: Option<ClipsGames>,
+        detected_game: Option<Game>,
         duration_ms: Option<u64>,
         bitrate_kbps: Bitrate,
         resolution: Resolution,
@@ -85,7 +85,7 @@ impl LocalClip {
     }
 
     /// Allows us to set the game type in the clip & update metadata
-    pub fn set_game_type(&mut self, new_game_type: Option<ClipsGames>) -> Result<(), WayclipError> {
+    pub fn set_game_type(&mut self, new_game_type: Option<Game>) -> Result<(), WayclipError> {
         self.detected_game = new_game_type;
         self.update_metadata()
     }

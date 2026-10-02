@@ -1,7 +1,7 @@
 use crate::{
     models::{
         clips::{
-            games::ClipsGames,
+            games::Game,
             hosted::{ClipVisibility, ClipsNewMetadata},
             tags::ClipsTag,
         },
@@ -69,7 +69,7 @@ pub struct LocalClip {
     /// FPs clip was recorded in
     pub fps: Fps,
     /// The GameType assosciated with this clip
-    pub detected_game: Option<ClipsGames>,
+    pub detected_game: Option<Game>,
 }
 
 impl TryFrom<LocalClip> for ClipsNewMetadata {

@@ -11,7 +11,7 @@ const DEFAULT_LENGTH_SECONDS: u64 = 120;
 const DEFAULT_RESOLUTION: (u64, u64) = (1920, 1080);
 const DEFAULT_VIDEO_CODEC: VideoCodec = VideoCodec::H264(CodecType::NVIDIA);
 const DEFAULT_FPS: u64 = 30;
-const DEFAULT_BITRATE_KBPS: u64 = 15000;
+const DEFAULT_BITRATE_KBPS: u32 = 15000;
 const DEFAULT_AUDIO_CODEC: AudioCodec = AudioCodec::Opus;
 const DEFAULT_MICROPHONE_LEVEL: f64 = 0.75;
 const DEFAULT_BACKGROUND_LEVEL: f64 = 0.50;
@@ -22,8 +22,8 @@ const MIN_RESOLUTION_WIDTH: u64 = 1;
 const MAX_RESOLUTION_WIDTH: u64 = 7680;
 const MIN_RESOLUTION_HEIGHT: u64 = 1;
 const MAX_RESOLUTION_HEIGHT: u64 = 4320;
-const MIN_BITRATE_KBPS: u64 = 300;
-const MAX_BITRATE_KBPS: u64 = 10000000;
+const MIN_BITRATE_KBPS: u32 = 300;
+const MAX_BITRATE_KBPS: u32 = 10000000;
 const MIN_AUDIO_LEVEL: f64 = 0.0;
 const MAX_AUDIO_LEVEL: f64 = 1.0;
 const MIN_FPS: u64 = 1;
@@ -189,7 +189,7 @@ impl Display for Resolution {
 
 /// Wrapper around bitrate
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct Bitrate(pub u64);
+pub struct Bitrate(pub u32);
 
 impl Default for Bitrate {
     fn default() -> Self {
@@ -200,7 +200,7 @@ impl Default for Bitrate {
 impl FromStr for Bitrate {
     type Err = WayclipError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let kbps: u64 = s.parse()?;
+        let kbps: u32 = s.parse()?;
 
         if !(MIN_BITRATE_KBPS..=MAX_BITRATE_KBPS).contains(&kbps) {
             return Err(WayclipError::Validation(
@@ -506,20 +506,22 @@ impl std::fmt::Display for AudioCodec {
 
 impl AudioCodec {
     /// Get the gstreamer encoder element
-    pub fn get_encoder(&self) -> &str {
+    pub fn get_encoder(&self) -> Cow<'static, str> {
         match self {
             AudioCodec::Opus => "opusenc",
             AudioCodec::AAC => "avenc_aac",
             AudioCodec::MP3 => "lamemp3enc",
         }
+        .into()
     }
 
     /// Get the gstreamer parser element
-    pub fn get_parser(&self) -> &str {
+    pub fn get_parser(&self) -> Cow<'static, str> {
         match self {
             AudioCodec::Opus => "opusparse",
             AudioCodec::AAC => "aacparse",
             AudioCodec::MP3 => "mpegaudioparse",
         }
+        .into()
     }
 }
