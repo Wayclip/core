@@ -2,7 +2,7 @@ use crate::{
     client::{WayclipClient, WayclipResponse},
     models::{
         clips::{
-            games::ClipsGames,
+            games::Game,
             hosted::{
                 ClipVisibility, ClipsNewMetadata, ClipsResponse, HostedClip,
                 PatchClipsClipIdRequest,
@@ -38,7 +38,7 @@ pub enum PatchClipField {
     /// Edit tags
     Tags(Vec<ClipsTag>),
     /// Edit game type
-    Game(Option<ClipsGames>),
+    Game(Option<Game>),
 }
 
 impl ClipsHttpClient {

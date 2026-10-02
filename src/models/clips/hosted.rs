@@ -1,6 +1,6 @@
 use crate::models::{
     clips::{
-        games::ClipsGames,
+        games::Game,
         tags::{ClipsClipTagRequest, ClipsClipTagResponse},
     },
     nutype::{
@@ -54,7 +54,7 @@ pub struct ClipsResponse {
     /// Time uploaded at
     pub uploaded_at: DateTime<FixedOffset>,
     /// Game assosciated with clip
-    pub detected_game: Option<ClipsGames>,
+    pub detected_game: Option<Game>,
     /// The location of the clip of user's choice
     pub location: String,
     /// Visibility of clip
@@ -132,7 +132,7 @@ pub struct ClipsNewMetadata {
     /// The visibility of clip
     pub clip_visibility: ClipVisibility,
     /// The game linked to clip
-    pub detected_game: Option<ClipsGames>,
+    pub detected_game: Option<Game>,
 }
 
 /// The request to be sent when patching a clip
@@ -149,5 +149,5 @@ pub struct PatchClipsClipIdRequest {
     /// Tags of clip
     pub tags: Option<Vec<ClipsClipTagRequest>>,
     /// Game Type of clip
-    pub detected_game: Option<Option<ClipsGames>>,
+    pub detected_game: Option<Option<Game>>,
 }
