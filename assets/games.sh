@@ -1,12 +1,23 @@
 #!/usr/bin/env zsh
-# Okay this is AI generated because hard...
 set -euo pipefail
 
 URL="https://discord.com/api/v10/applications/detectable"
 OUT_FILE="games.json"
 
 curl -sSL -f -H "User-Agent: Mozilla/5.0" "$URL" | jq -c '
-  ["game", "client", "launcher", "start", "main", "patcher", "updater", "crashreporter", "unitycrashhandler", "unrealcefsubprocess"] as $blacklist |
+  ["game", "client", "launcher", "start", "main", "patcher", "updater", "crashreporter",
+   "unitycrashhandler", "unitycrashhandler64", "unrealcefsubprocess",
+   "helper", "service", "server", "editor", "dev", "debug", "sandbox",
+   "cef", "chrome", "gpu", "renderer", "zygote", "broker", "sandboxbox",
+   "installer", "setup", "bootstrapper", "bootstrap", "runtime", "redist",
+   "dotnet", "dxweb", "vcredist", "prereq"] as $blacklist |
+
+  ["unity", "unreal", "engine", "launcher", "patcher", "updater",
+   "installer", "setup", "bootstrap", "crash", "report", "helper",
+   "service", "server", "editor", "dev ", "debug", "cef", "chrome",
+   "gpu", "renderer", "zygote", "broker", "sandbox", "runtime",
+   "redist", "vcredist", "dxweb", "dotnet", "prereq"] as $pattern_blacklist |
+
   [
     .[] | . as $app |
     ($app.third_party_skus // [] | map(select(.distributor == "steam") | .id | tonumber?)[0] // null) as $steam_appid |
@@ -14,8 +25,6 @@ curl -sSL -f -H "User-Agent: Mozilla/5.0" "$URL" | jq -c '
     (
       if $app.icon != null then
         "https://cdn.discordapp.com/app-icons/" + $app.id + "/" + $app.icon + ".png?size=256"
-      elif $steam_appid != null then
-        "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/" + ($steam_appid|tostring) + "/capsule_231x87.jpg"
       else
         null
       end
@@ -36,6 +45,16 @@ curl -sSL -f -H "User-Agent: Mozilla/5.0" "$URL" | jq -c '
     (.name | gsub("\\\\"; "/") | split("/") | last | ascii_downcase | sub("\\.exe$"; "")) as $exe |
     select(($exe | length) >= 4) |
     select(($blacklist | index($exe)) == null) |
+    select(
+      ([$pattern_blacklist[] | . as $p | $exe | test($p; "i")] | any) == false
+    ) |
+    (
+      $app.name | ascii_downcase | gsub("[^a-z0-9]+"; "_") | sub("^_+"; "") | sub("_+$"; "")
+    ) as $norm_name |
+    select(
+      ($exe == $norm_name) or
+      ($steam_appid != null and ($exe | test("^(client|helper|service|launcher|patcher|updater)"; "i")) == false)
+    ) |
     {
       app_id: $app.id,
       app_name: $app.name,
