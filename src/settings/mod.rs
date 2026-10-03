@@ -95,20 +95,27 @@ impl UserSettings {
         let file = Self::config_path()?;
 
         if file.exists() {
-            let output = read_to_string(file)?;
-            let string = output.as_str();
+            let output = read_to_string(&file)?;
 
-            let v = serde_json::from_str::<Ver>(string)
+            let from = serde_json::from_str::<Ver>(&output)
                 .map_err(|e| WayclipError::Config(format!("Config file corrupted: {e}").into()))?
                 .v;
 
+            let to = Version::parse(VERSION)?;
             let mut config: serde_json::Value = serde_json::from_str(&output)?;
-            SettingsMigrate::migrate(&mut config, v, Version::parse(VERSION)?)?;
+
+            SettingsMigrate::migrate(&mut config, from.clone(), to.clone())?;
+
             let settings: UserSettings = serde_json::from_value(config)?;
+
+            if from != to {
+                settings.save_to_local_disk()?;
+            }
+
             Ok(settings)
         } else {
             let settings = Self::default();
-            Self::save_to_local_disk(&settings)?;
+            settings.save_to_local_disk()?;
             Ok(settings)
         }
     }

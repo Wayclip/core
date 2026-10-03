@@ -6,6 +6,8 @@ pub mod auth;
 /// `clips` module contains all the models that are assosciated with clips, such as hosted, local,
 /// unified, tags
 pub mod clips;
+/// `daemon` module contains needed IPC models for daemon
+pub mod daemon;
 /// `error` module is responsible for providing WayclipError enum, handling internal and external
 /// third-party errors
 pub mod error;
