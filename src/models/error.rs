@@ -1,3 +1,4 @@
+#[cfg(any(feature = "daemon", feature = "errors"))]
 use rodio::{DeviceSinkError, decoder::DecoderError};
 use std::{
     borrow::Cow,
@@ -140,14 +141,17 @@ pub enum WayclipError {
 
     /// Handles errors thrown by rodio::stream
     #[error("DeviceSink error: {0}")]
+    #[cfg(any(feature = "daemon", feature = "errors"))]
     DeviceSink(#[from] DeviceSinkError),
 
     /// Handles errors thrown by rodio::decoder
     #[error("DecoderError error: {0}")]
+    #[cfg(any(feature = "daemon", feature = "errors"))]
     DecoderError(#[from] DecoderError),
 
     /// Handles errors thrown by zbus
     #[error("ZBus error: {0}")]
+    #[cfg(any(feature = "daemon", feature = "errors"))]
     ZBus(#[from] zbus::Error),
 
     /// Handles errors thrown by zbus::fdo
