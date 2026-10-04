@@ -3,6 +3,12 @@ use zbus::zvariant::Type;
 
 /// Contains methods for clients to communicate with the daemon
 pub mod client;
+/// Contains methods related to checking the health of system and installed packages
+pub mod doctor;
+/// Contains methods related to sending notifications and playing sound on the system
+pub mod notifications;
+/// Contains pipewire related methods, locked behind a feature
+pub mod pipewire;
 
 /// Default systemd service name for the Wayclip daemon
 pub const DEFAULT_SYSTEMD_SERVICE: &str = "wayclip-daemon.service";
