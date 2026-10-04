@@ -7,6 +7,7 @@ pub mod auth;
 /// unified, tags
 pub mod clips;
 /// `daemon` module contains needed IPC models for daemon
+#[cfg(feature = "daemon")]
 pub mod daemon;
 /// `error` module is responsible for providing WayclipError enum, handling internal and external
 /// third-party errors
