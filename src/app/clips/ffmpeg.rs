@@ -2,11 +2,19 @@ use crate::models::error::WayclipError;
 use gstreamer::ClockTime;
 use gstreamer_pbutils::Discoverer;
 use std::{
+    fs::create_dir_all,
     path::{Path, PathBuf},
     time::Duration,
 };
 use tokio::{fs, process::Command};
 use url::Url;
+
+/// The width of the preview
+pub const DEFAULT_PREVIEW_WIDTH: i32 = 480;
+/// The lower quality bitrate of preview
+pub const DEFAULT_PREVIEW_BITRATE: u32 = 800;
+/// Length of preview itself. Will take first N seconds
+pub const DEFAULT_PREVIEW_CLIP_LENGTH: u64 = 5;
 
 /// An empty struct, created to make sure all the FFmpeg actions stay in one place.
 pub struct Ffmpeg;
@@ -138,4 +146,53 @@ impl Ffmpeg {
 pub trait PreviewGenerator: Send + Sync {
     /// The method itself that is then implemented in the `wayclip-daemon` crate
     fn generate_preview(&self, video_path: &Path, preview_path: &Path) -> Result<(), WayclipError>;
+}
+
+/// We will also have a backup preview generator based on FFMPEG, when the default gstreamer one is
+/// not avaialble
+pub struct FfmpegPreviewGenerator;
+
+impl PreviewGenerator for FfmpegPreviewGenerator {
+    /// The public method which uses ffmpeg to generate a preview from a path
+    fn generate_preview(&self, video_path: &Path, preview_path: &Path) -> Result<(), WayclipError> {
+        if let Some(parent) = preview_path.parent() {
+            create_dir_all(parent)?;
+        }
+
+        if !video_path.exists() {
+            return Err(WayclipError::Remux(
+                "Input video file does not exist".into(),
+            ));
+        }
+
+        let output = std::process::Command::new("ffmpeg")
+            .arg("-y")
+            .arg("-ss")
+            .arg("0")
+            .arg("-t")
+            .arg(DEFAULT_PREVIEW_CLIP_LENGTH.to_string())
+            .arg("-i")
+            .arg(video_path)
+            .arg("-vf")
+            .arg(format!("scale={DEFAULT_PREVIEW_WIDTH}:-2"))
+            .arg("-c:v")
+            .arg("libx264")
+            .arg("-preset")
+            .arg("veryfast")
+            .arg("-b:v")
+            .arg(format!("{DEFAULT_PREVIEW_BITRATE}k"))
+            .arg("-an")
+            .arg(preview_path)
+            .output()
+            .map_err(|e| WayclipError::Remux(format!("Failed to execute ffmpeg: {e}").into()))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(WayclipError::Remux(
+                format!("FFmpeg failed to generate preview: {stderr}").into(),
+            ));
+        }
+
+        Ok(())
+    }
 }
