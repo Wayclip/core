@@ -50,7 +50,8 @@ impl NotificationSound {
 
     fn play(&self) -> Result<(), WayclipError> {
         let bytes = self.get_bytes();
-        let device_sink = DeviceSinkBuilder::open_default_sink()?;
+        let mut device_sink = DeviceSinkBuilder::open_default_sink()?;
+        device_sink.log_on_drop(false);
 
         let player = Player::connect_new(device_sink.mixer());
         let source = Decoder::try_from(Cursor::new(bytes))?;
