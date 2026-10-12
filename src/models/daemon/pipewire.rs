@@ -24,7 +24,6 @@ pub const INIT_TIMEOUT: Duration = Duration::from_secs(5);
 pub enum PipewireNodeType {
     Source,
     Sink,
-    Unknown,
 }
 
 impl From<&str> for PipewireNodeType {
@@ -34,7 +33,7 @@ impl From<&str> for PipewireNodeType {
         } else if value.starts_with("Audio/Sink") {
             Self::Sink
         } else {
-            Self::Unknown
+            unreachable!()
         }
     }
 }
