@@ -7,6 +7,8 @@ use std::{
     str::ParseBoolError,
 };
 use thiserror::Error;
+#[cfg(any(feature = "daemon", feature = "errors"))]
+use zbus;
 
 /// An enum which contains all the possible errors
 /// Most of the types here are made to be converted from external third-party error types
@@ -156,6 +158,7 @@ pub enum WayclipError {
 
     /// Handles errors thrown by zbus::fdo
     #[error("Fdo error: {0}")]
+    #[cfg(any(feature = "daemon", feature = "errors"))]
     Fdo(#[from] zbus::fdo::Error),
 
     /// Handles errors thrown by std::env
