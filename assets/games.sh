@@ -9,7 +9,7 @@ trap 'rm -f "$TMP_FILE"' EXIT INT TERM
 
 curl -sSL -f --compressed \
   -H "Accept: application/json" \
-  -H "User-Agent: Wayclip-core/0.0.1 (+https://github.com/Wayclip/core)" \
+  -H "User-Agent: Wayclip-core/0.1.4 (+https://github.com/Wayclip/core)" \
   "$URL" | jq -c '
   ["game", "client", "launcher", "start", "main", "patcher", "updater", "crashreporter",
    "unitycrashhandler", "unitycrashhandler64", "unrealcefsubprocess",
