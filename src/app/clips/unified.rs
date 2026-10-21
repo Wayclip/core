@@ -110,21 +110,15 @@ impl From<&HostedClip> for HostedClipInfo {
             ..Default::default()
         };
 
-        match (
-            &hosted.preview_status,
-            &hosted.clip_status,
-            &hosted.thumbnail_status,
-        ) {
-            (ClipsStatusType::Ready, ClipsStatusType::Ready, ClipsStatusType::Ready) => {
+        match &hosted.status {
+            ClipsStatusType::Complete => {
                 info.hosted_link = Some(
                     // TODO: fix hardocded wayclip.com
                     format!("https://wayclip.com/clips/{}", hosted.clip_id),
                 );
                 info.hosted_status = hosted.clip_visibility.to_string();
             }
-            _ => {
-                info.hosted_status = "Pending".to_string();
-            }
+            s => info.hosted_status = s.to_string(),
         }
 
         info

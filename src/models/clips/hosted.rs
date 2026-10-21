@@ -44,11 +44,7 @@ pub struct ClipsResponse {
     /// Original fps of clip
     pub fps: Option<i32>,
     /// The upload status of clip
-    pub clip_status: ClipsStatusType,
-    /// The upload status of preview
-    pub preview_status: ClipsStatusType,
-    /// The upload status of thumbnail
-    pub thumbnail_status: ClipsStatusType,
+    pub status: ClipsStatusType,
     /// The original file size
     pub file_size_mb: i32,
     /// Time uploaded at
@@ -72,18 +68,20 @@ pub struct ClipsResponse {
 /// An alias for ClipsResponse, to be used inside of APP
 pub type HostedClip = ClipsResponse;
 
-/// The uploading status of a clip/preview/thumbnail
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+/// The upload status of clip as a whole
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Display)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub enum ClipsStatusType {
-    /// We dont know
-    Unknown,
-    /// Still processing
-    Processing,
+    /// When API created initial record
+    Pending,
+    /// `pre-create` hook: When user hits TUS for first time
+    Uploading,
+    /// `post-finish` hook: When user finished TUS upload
+    Uploaded,
+    /// Video has been trasncoded and moved to CLIPS_STORAGE_PATH
+    Complete,
     /// Failed upload
     Failed,
-    /// Fully uploaded
-    Ready,
 }
 
 /// Visibility of clip - who can see the clip

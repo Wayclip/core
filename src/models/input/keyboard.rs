@@ -73,7 +73,7 @@ impl FromStr for WayclipKeyCode {
 impl std::fmt::Display for WayclipKeyCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            WayclipKeyCode::Char(c) => write!(f, "{c}"),
+            WayclipKeyCode::Char(c) => write!(f, "{}", c.to_ascii_uppercase()),
             WayclipKeyCode::F(n) => write!(f, "F{n}"),
             WayclipKeyCode::Enter => write!(f, "Return"),
             WayclipKeyCode::Esc => write!(f, "Escape"),
