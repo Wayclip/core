@@ -1,4 +1,4 @@
-use crate::app::os_keyring::OsKeyring;
+use crate::app::secure_store::SecureStore;
 use crate::client::{TokensStore, WayclipClient, WayclipResponse};
 use crate::models::auth::device::{
     GetAuthDeviceResponse, PostAuthDevicePollRequest, PostAuthDevicePollResponse,
@@ -81,8 +81,8 @@ impl AuthenticationHttpClient {
             .await
         {
             Ok(_) => {
-                let os_keyring = OsKeyring;
-                os_keyring.clear().await?;
+                let secure_store = SecureStore;
+                secure_store.clear().await?;
                 Ok(())
             }
             Err(e) => Err(e),

@@ -2,7 +2,7 @@
 //! Clips handling, Quering data. This is done to generalise the code base, so that same client is
 //! used, which will handle any network requests same way
 
-use crate::{app::os_keyring::OsKeyring, models::error::WayclipError};
+use crate::{app::secure_store::SecureStore, models::error::WayclipError};
 use cookie_rs::Cookie;
 use reqwest::{
     Method, StatusCode,
@@ -77,7 +77,7 @@ impl WayclipClient {
         &mut self,
         headers: GetAll<'_, HeaderValue>,
     ) -> Result<(), WayclipError> {
-        let os_keyring = OsKeyring;
+        let secure_store = SecureStore;
         let fetched_tokens = TokensStore::build_from_headers(headers)?;
 
         if &fetched_tokens != self.tokens.as_ref().unwrap_or(&TokensStore::default())
@@ -85,15 +85,15 @@ impl WayclipClient {
             && !fetched_tokens.refresh_token.is_empty()
         {
             self.tokens = Some(fetched_tokens.clone());
-            os_keyring.store::<TokensStore>(fetched_tokens).await?;
+            secure_store.store::<TokensStore>(fetched_tokens).await?;
         }
 
         Ok(())
     }
 
     async fn clear_credentials(&mut self) -> Result<(), WayclipError> {
-        let os_keyring = OsKeyring;
-        os_keyring.clear().await?;
+        let secure_store = SecureStore;
+        secure_store.clear().await?;
         self.tokens = None;
         Ok(())
     }
@@ -101,8 +101,8 @@ impl WayclipClient {
     /// A method for the submodules to ensure that with the next call, we will use our credentials.
     /// In addition, this stores the extracted credentials inside the Client itself.
     pub async fn with_credentials(&mut self) -> Result<&mut Self, WayclipError> {
-        let os_keyring = OsKeyring;
-        let tokens = os_keyring
+        let secure_store = SecureStore;
+        let tokens = secure_store
             .get::<TokensStore>()
             .await?
             .ok_or_else(|| WayclipError::CLI("No tokens stored".into()))?;

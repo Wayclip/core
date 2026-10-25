@@ -1,7 +1,7 @@
 use crate::models::error::WayclipError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 /// A global key used for accessing the user data stored in 'cache'
 pub const USERS_ME_DATA_KEY: &'static str = "users_me_data";
@@ -22,6 +22,16 @@ impl<T: Serialize + DeserializeOwned + Clone> Cache<T> {
             .ok_or_else(|| WayclipError::NotFound("No cache dir found".into()))?
             .join("wayclip")
             .join("data.json");
+
+        if !cache_path.exists()
+            && let Some(p) = cache_path.parent()
+        {
+            fs::create_dir_all(p)?;
+            fs::write(
+                &cache_path,
+                serde_json::to_vec(&HashMap::<String, CachedData<T>>::new())?,
+            )?;
+        }
 
         let bytes = tokio::fs::read(&cache_path).await?;
         let entries = serde_json::from_slice::<HashMap<String, CachedData<T>>>(&bytes)?;

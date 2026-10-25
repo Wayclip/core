@@ -97,10 +97,6 @@ pub enum WayclipError {
     #[error("URL Parse error occurred: {0}")]
     URL(#[from] url::ParseError),
 
-    /// Handles errors thrown by keyring
-    #[error("Keyring error occurred: {0}")]
-    Keyring(#[from] keyring::Error),
-
     /// Handles errors thrown by tokio::task::JoinError
     #[error("Task join error: {0}")]
     Join(#[from] tokio::task::JoinError),
