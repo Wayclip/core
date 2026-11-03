@@ -5549,8 +5549,9 @@ dependencies = [
 
 [[package]]
 name = "wayclip-core"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
+ "arc-swap",
  "ashpd",
  "bitflags 2.13.2",
  "chrono",

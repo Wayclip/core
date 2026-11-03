@@ -21,7 +21,7 @@ curl -sSL -f --compressed \
    "default", "command", "cleaner", "remove", "application", "appdata", "app_main",
    "autorun", "autostarter", "frontend", "standalone", "standalonewindows64",
    "java", "javaw", "dolphin", "aseprite", "krita", "mudlet", "busybox64",
-   "windows", "windows64", "windows-64bit", "utilities", "downloader"] as $blacklist |
+   "windows", "windows64", "windows-64bit", "utilities", "downloader", "update"] as $blacklist |
 
   ["unity", "unreal", "engine", "launcher", "patcher", "updater",
    "installer", "setup", "bootstrap", "crash", "report", "helper",

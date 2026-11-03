@@ -1,9 +1,21 @@
+use arc_swap::ArcSwap;
 use serde::{Deserialize, Serialize};
-use std::{cmp::Ordering, collections::HashMap, fs, path::PathBuf, sync::OnceLock};
+use std::{
+    cmp::Ordering,
+    collections::HashMap,
+    fs,
+    path::PathBuf,
+    sync::{Arc, LazyLock},
+    time::Duration,
+};
+
+use crate::models::error::WayclipError;
 
 const BUNDLED_GAMES_JSON: &str = include_str!("../../../assets/games.json");
+const REMOTE_GAMES_URL: &str = "https://wayclip-games.wayclip.workers.dev/";
 
-static REGISTRY: OnceLock<GameRegistry> = OnceLock::new();
+static REGISTRY: LazyLock<ArcSwap<GameRegistry>> =
+    LazyLock::new(|| ArcSwap::from_pointee(GameRegistry::load_initial()));
 
 /// Represents a game title, its identifiers, and genre metadata
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -119,6 +131,7 @@ struct UserGamesConfig {
 }
 
 /// fast lookups by executable name or slug
+#[derive(Default)]
 pub struct GameRegistry {
     by_slug: HashMap<String, Game>,
     by_exe: HashMap<String, Game>,
@@ -126,37 +139,49 @@ pub struct GameRegistry {
 }
 
 impl GameRegistry {
-    /// Returns the global registry instance,
-    pub fn global() -> &'static Self {
-        REGISTRY.get_or_init(Self::load)
+    /// Returns the global registry instance
+    pub fn global() -> Arc<Self> {
+        REGISTRY.load_full()
     }
 
-    /// Loads bundled games and merges any local user overrides
-    fn load() -> Self {
+    /// Load disk cache
+    /// Otherwise use bundled JSON
+    fn load_initial() -> Self {
+        Self::load_disk_cache().unwrap_or_else(Self::load_fallback)
+    }
+
+    /// Load only bundled JSON
+    fn load_fallback() -> Self {
+        Self::build_from_json(BUNDLED_GAMES_JSON).unwrap_or_default()
+    }
+
+    /// Build a registry from raw JSON + merge w local `~/.config/wayclip/games.toml`
+    pub fn build_from_json(raw_json: &str) -> Result<Self, WayclipError> {
+        let entries: Vec<RawGameEntry> = serde_json::from_str(raw_json)
+            .map_err(|e| WayclipError::Validation(e.to_string().into()))?;
+
         let mut by_slug = HashMap::new();
         let mut by_exe = HashMap::new();
-        let mut all = Vec::new();
+        let mut all = Vec::with_capacity(entries.len());
 
-        if let Ok(entries) = serde_json::from_str::<Vec<RawGameEntry>>(BUNDLED_GAMES_JSON) {
-            for entry in entries {
-                let game = Game {
-                    slug: entry.slug.clone(),
-                    name: entry.name,
-                    steam_appid: entry.steam_appid,
-                    icon_url: entry.icon_url,
-                    cover_url: entry.cover_url,
-                    tags: entry.tags,
-                };
-                for exe in entry.exes {
-                    by_exe.insert(normalize_exe(&exe), game.clone());
-                }
-                by_slug.insert(entry.slug, game.clone());
-                all.push(game);
+        for entry in entries {
+            let game = Game {
+                slug: entry.slug.clone(),
+                name: entry.name,
+                steam_appid: entry.steam_appid,
+                icon_url: entry.icon_url,
+                cover_url: entry.cover_url,
+                tags: entry.tags,
+            };
+            for exe in entry.exes {
+                by_exe.insert(normalize_exe(&exe), game.clone());
             }
+            by_slug.insert(entry.slug, game.clone());
+            all.push(game);
         }
 
-        if let Some(home) = std::env::var_os("HOME") {
-            let config_path = PathBuf::from(home).join(".config/wayclip/games.toml");
+        if let Some(config_dir) = dirs::config_dir() {
+            let config_path = config_dir.join("wayclip/games.toml");
             if let Ok(raw) = fs::read_to_string(config_path) {
                 if let Ok(cfg) = toml::from_str::<UserGamesConfig>(&raw) {
                     for entry in cfg.games {
@@ -180,11 +205,110 @@ impl GameRegistry {
 
         all.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
 
-        Self {
+        Ok(Self {
             by_slug,
             by_exe,
             all,
+        })
+    }
+
+    fn cache_file_path() -> Option<PathBuf> {
+        dirs::cache_dir().map(|p| p.join("wayclip/games.json"))
+    }
+
+    fn etag_file_path() -> Option<PathBuf> {
+        dirs::cache_dir().map(|p| p.join("wayclip/games.json.etag"))
+    }
+
+    fn load_disk_cache() -> Option<Self> {
+        let path = Self::cache_file_path()?;
+        if !path.exists() {
+            return None;
         }
+        let raw = fs::read_to_string(&path).ok()?;
+        Self::build_from_json(&raw).ok()
+    }
+
+    /// Http Client to fetch new data
+    pub async fn fetch_and_update() -> Result<bool, WayclipError> {
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(15))
+            .build()?;
+
+        let mut req = client.get(REMOTE_GAMES_URL);
+
+        let etag_path = Self::etag_file_path();
+        let cached_etag = etag_path
+            .as_ref()
+            .and_then(|p| fs::read_to_string(p).ok())
+            .map(|s| s.trim().to_string());
+
+        if let Some(ref etag) = cached_etag {
+            req = req.header(reqwest::header::IF_NONE_MATCH, etag);
+        }
+
+        let resp = req.send().await?;
+
+        // 304 -> up to date
+        if resp.status() == reqwest::StatusCode::NOT_MODIFIED {
+            log::debug!("Games already up to date (304)");
+            return Ok(false);
+        }
+
+        if !resp.status().is_success() {
+            return Err(WayclipError::Api(
+                format!("Failed to download games: HTTP {}", resp.status()).into(),
+            ));
+        }
+
+        let new_etag = resp
+            .headers()
+            .get(reqwest::header::ETAG)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string());
+
+        let raw_json = resp.text().await?;
+
+        let new_registry = Self::build_from_json(&raw_json)?;
+
+        if let Some(cache_path) = Self::cache_file_path() {
+            if let Some(parent) = cache_path.parent() {
+                let _ = fs::create_dir_all(parent);
+            }
+            let tmp_path = cache_path.with_extension("tmp");
+            if fs::write(&tmp_path, &raw_json).is_ok() {
+                let _ = fs::rename(&tmp_path, &cache_path);
+            }
+        }
+
+        if let (Some(epath), Some(etag)) = (etag_path, new_etag) {
+            let _ = fs::write(epath, etag);
+        }
+
+        log::info!(
+            "Loaded updated games registry with {} games",
+            new_registry.all.len()
+        );
+        REGISTRY.store(Arc::new(new_registry));
+
+        Ok(true)
+    }
+
+    /// check for updates
+    pub fn spawn_periodic_updater(interval: Duration) {
+        tokio::spawn(async move {
+            if let Err(e) = Self::fetch_and_update().await {
+                log::debug!("Initial games update check skipped/failed: {e}");
+            }
+
+            let mut timer = tokio::time::interval(interval);
+            loop {
+                timer.tick().await;
+                if let Err(e) = Self::fetch_and_update().await {
+                    log::warn!("Background games update error: {e}");
+                }
+            }
+        });
     }
 
     /// Finds a game by executable name (case-insensitive & `.exe` || `-bin` stripped)
