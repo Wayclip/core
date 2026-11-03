@@ -91,6 +91,3 @@ default = []
 daemon = ["dep:pipewire", "dep:notify-rust", "dep:ashpd", "dep:zbus", "dep:rodio"]
 errors = ["dep:ashpd", "dep:zbus","dep:rodio"]
 openapi = ["dep:sea-orm", "dep:utoipa"]
-
-[package.metadata.docs.rs]
-features = ["errors", "daemon"]
