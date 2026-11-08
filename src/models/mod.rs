@@ -26,3 +26,7 @@ pub mod users;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct Bytes(Vec<u8>);
+
+/// I want to expose this one particular dirs() to the API. TODO: Make a better module for dir
+/// handling?
+pub use dirs::cache_dir;

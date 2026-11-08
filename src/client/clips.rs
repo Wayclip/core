@@ -5,7 +5,7 @@ use crate::{
             games::Game,
             hosted::{
                 ClipVisibility, ClipsNewMetadata, ClipsResponse, HostedClip,
-                PatchClipsClipIdRequest,
+                PatchClipsClipIdRequest, UploadClipResponse,
             },
             tags::ClipsTag,
         },
@@ -15,11 +15,13 @@ use crate::{
     },
     settings::output::VideoFormat,
 };
+use base64::{Engine, engine::general_purpose::STANDARD};
 use itertools::Itertools;
-use reqwest::{Method, multipart};
-use serde_json::json;
-use std::{mem::discriminant, path::PathBuf, sync::Arc};
-use tokio::fs;
+use reqwest::Method;
+use std::{mem::discriminant, path::PathBuf};
+use tokio::{fs, io::AsyncReadExt};
+
+const UPLOAD_CHUNK_SIZE: usize = 5 * 1000 * 1000; // 5 MB 
 
 /// This struct is a submodule of WayclipClient, responsbile for HTTP calls related to Clips
 /// managements.
@@ -57,8 +59,7 @@ impl ClipsHttpClient {
             .client
             .with_credentials()
             .await?
-            .with_body(&query)
-            .await?
+            .with_body(&query)?
             .send_call(Method::POST, "/users/me/clips/search")
             .await?;
 
@@ -115,58 +116,152 @@ impl ClipsHttpClient {
             .client
             .with_credentials()
             .await?
-            .with_body(&body)
-            .await?
+            .with_body(&body)?
             .send_call(Method::PATCH, &format!("/clips/{}", clip_id))
             .await?;
 
         Ok(())
     }
 
-    /// Method to upload the clip
-    /// This method does not handle updating the local metadata or verifying the limits, it only
-    /// constructs the client with the multipart builder and sends a call
+    /// Updated method for TUS uploads. This allows to resume them and more benefits.
+    /// Works in 3 stages:
+    /// 1. Get upload token from POST api.wayclip.com/clips -> This gives us <upload_url>
+    /// 2. Create TUSD resource via POST <upload_url>
+    /// 3. Stream data via PATCH <upload_url>
     pub async fn upload(
         &mut self,
         video_format: VideoFormat,
         video_path: &PathBuf,
         metadata: ClipsNewMetadata,
     ) -> Result<HostedClip, WayclipError> {
-        // Get all the variables here that will be brought into enclosue
-        let bytes = Arc::new(fs::read(video_path).await?);
-        let file_name = metadata.name.clone().into_inner();
-        let mime_string = video_format.get_mime_str().to_string();
-        let json_string = json!(metadata).to_string();
+        let file_metadata = fs::metadata(video_path).await?;
 
-        let multipart_builder = Arc::new(move || {
-            // Construct file part
-            let file_part = multipart::Part::bytes((*bytes).clone())
-                .file_name(file_name.clone())
-                .mime_str(&mime_string)
-                .expect("valid mime type");
-
-            // Construct metadata part
-            let json_part = multipart::Part::text(json_string.clone())
-                .mime_str("application/json")
-                .expect("valid mime type");
-
-            multipart::Form::new()
-                .part("json", json_part)
-                .part("file", file_part)
-        });
-
-        let response: WayclipResponse<HostedClip> = self
+        let response: WayclipResponse<UploadClipResponse> = self
             .client
             .with_credentials()
             .await?
-            .with_multipart(multipart_builder)
-            .await
-            .send_call(Method::POST, "clips")
+            .with_body(&metadata)?
+            .send_call(Method::POST, "/clips")
             .await?;
 
-        log::info!("Uploaded clip successfully");
+        let upload_info = response.into_inner()?;
 
-        response.into_inner()
+        let file_size = file_metadata.len();
+        let file_name = metadata.name.into_inner();
+        let mime_string = video_format.get_mime_str().to_string();
+
+        let create_headers = self.generate_create_tus_headers(
+            &upload_info.upload_token,
+            &upload_info.metadata.clip_id,
+            &file_name,
+            &mime_string,
+            file_size,
+        );
+
+        let create: WayclipResponse<()> = self
+            .client
+            .with_credentials()
+            .await?
+            .with_headers(create_headers)
+            .send_url(Method::POST, upload_info.upload_url.clone())
+            .await?;
+
+        let location = create
+            .headers
+            .get("Location")
+            .ok_or_else(|| {
+                WayclipError::Validation("Missing Location header in tus response".into())
+            })?
+            .to_str()
+            .map_err(|e| WayclipError::Validation(e.to_string().into()))?;
+
+        let patch_url = if let Ok(parsed) = url::Url::parse(location) {
+            parsed
+        } else {
+            let mut base = upload_info.upload_url.clone();
+            if !base.path().ends_with('/') {
+                base.set_path(&format!("{}/", base.path()));
+            }
+            base.join(location)
+                .map_err(|e| WayclipError::Validation(e.to_string().into()))?
+        };
+
+        // use chunks and offsets to stream certain parts of the file
+        let mut file = fs::File::open(video_path).await?;
+        let mut offset: u64 = 0;
+        while offset < file_size {
+            let to_read = std::cmp::min(UPLOAD_CHUNK_SIZE as u64, file_size - offset) as usize;
+            let mut chunk = vec![0u8; to_read];
+            file.read_exact(&mut chunk).await?;
+
+            let patch_headers =
+                self.generate_patch_tus_headers(offset, chunk.len(), &upload_info.upload_token);
+
+            let patch: WayclipResponse<()> = self
+                .client
+                .with_credentials()
+                .await?
+                .with_headers(patch_headers)
+                .with_raw_body(chunk)
+                .send_url(Method::PATCH, patch_url.clone())
+                .await?;
+
+            if let Some(new_offset_header) = patch.headers.get("Upload-Offset")
+                && let Ok(new_offset_str) = new_offset_header.to_str()
+                && let Ok(new_offset) = new_offset_str.parse::<u64>()
+            {
+                offset = new_offset;
+                continue;
+            }
+
+            offset += to_read as u64;
+        }
+
+        Ok(upload_info.metadata)
+    }
+
+    fn generate_patch_tus_headers(
+        &self,
+        offset: u64,
+        chunk_len: usize,
+        upload_token: &str,
+    ) -> Vec<(String, String)> {
+        vec![
+            ("Tus-Resumable".into(), "1.0.0".into()),
+            ("Upload-Offset".into(), offset.to_string()),
+            (
+                "Content-Type".into(),
+                "application/offset+octet-stream".into(),
+            ),
+            ("Content-Length".into(), chunk_len.to_string()),
+            ("Authorization".into(), format!("Bearer {}", upload_token)),
+            ("Upload-Token".into(), upload_token.to_string()),
+        ]
+    }
+
+    fn generate_create_tus_headers(
+        &self,
+        upload_token: &str,
+        clip_id: &str,
+        file_name: &str,
+        file_type: &str,
+        file_size: u64,
+    ) -> Vec<(String, String)> {
+        let tus_metadata = [
+            format!("upload_token {}", STANDARD.encode(upload_token.as_bytes())),
+            format!("clip_id {}", STANDARD.encode(clip_id.as_bytes())),
+            format!("filename {}", STANDARD.encode(file_name.as_bytes())),
+            format!("filetype {}", STANDARD.encode(file_type.as_bytes())),
+        ]
+        .join(",");
+
+        vec![
+            ("Tus-Resumable".into(), "1.0.0".into()),
+            ("Upload-Length".into(), file_size.to_string()),
+            ("Upload-Metadata".into(), tus_metadata),
+            ("Authorization".into(), format!("Bearer {}", upload_token)),
+            ("Upload-Token".into(), upload_token.to_string()),
+        ]
     }
 }
 

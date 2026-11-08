@@ -149,3 +149,16 @@ pub struct PatchClipsClipIdRequest {
     /// Game Type of clip
     pub detected_game: Option<Option<Game>>,
 }
+
+/// The response given to the client on a new upload.
+/// Includes a URL, token and parsed metadata
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct UploadClipResponse {
+    /// Returned parsed metadata of the uploaded clip
+    pub metadata: ClipsResponse,
+    /// The URL to which clip will be uploaded to (cdn.wayclip.com/stuff)
+    pub upload_url: url::Url,
+    /// The token to use alongside uploading to authorize the tusd action
+    pub upload_token: String,
+}

@@ -6,11 +6,12 @@ use crate::{app::secure_store::SecureStore, models::error::WayclipError};
 use cookie_rs::Cookie;
 use reqwest::{
     Method, StatusCode,
-    header::{COOKIE, GetAll, HeaderValue, SET_COOKIE},
+    header::{COOKIE, GetAll, HeaderMap, HeaderName, HeaderValue, SET_COOKIE},
     multipart::Form,
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::{fmt::Debug, sync::Arc};
+use url::Url;
 
 /// We standardise the naming convention of the two cookies that are used for authentication.
 /// One of them being `jwt_token`
@@ -41,9 +42,13 @@ pub struct WayclipClient {
     // These 3 will be populated later on
     tokens: Option<TokensStore>,
     body: Option<serde_json::Value>,
+    raw_body: Option<Vec<u8>>,
+    headers: Option<Vec<(String, String)>>,
     multipart_builder: Option<Arc<dyn Fn() -> Form + Send + Sync>>,
 }
 
+// TODO: Consider making the `with_*()` methods synchronous instead... Currently blocked by keyring,
+// but there must be a way
 impl WayclipClient {
     /// General method to construct a WayclipClient
     pub fn new(api_url: url::Url) -> Result<Self, WayclipError> {
@@ -65,6 +70,8 @@ impl WayclipClient {
             http_client,
             tokens: None,
             body: None,
+            headers: None,
+            raw_body: None,
             multipart_builder: None,
         })
     }
@@ -114,7 +121,7 @@ impl WayclipClient {
     /// A method for the submodules to ensure that with the next call, we will use the provided
     /// body, which has to be serialisable.
     /// In addition, this stores the body inside the Client itself.
-    pub async fn with_body<B>(&mut self, body: &B) -> Result<&mut Self, WayclipError>
+    pub fn with_body<B>(&mut self, body: &B) -> Result<&mut Self, WayclipError>
     where
         B: Serialize + Send + 'static,
     {
@@ -127,11 +134,23 @@ impl WayclipClient {
     /// multipart_builder. The multipart builder is neccesary to take ownership of the multipart
     /// when needed.
     /// In addition, this stores the multipart_builder inside the Client itself.
-    pub async fn with_multipart(
+    pub fn with_multipart(
         &mut self,
         multipart_builder: Arc<dyn Fn() -> Form + Send + Sync>,
     ) -> &mut Self {
         self.multipart_builder = Some(multipart_builder);
+        self
+    }
+
+    /// A method which will allow to append custom headers to the call
+    pub fn with_headers(&mut self, headers: Vec<(String, String)>) -> &mut Self {
+        self.headers = Some(headers);
+        self
+    }
+
+    /// Send bytes instead
+    pub fn with_raw_body(&mut self, bytes: Vec<u8>) -> &mut Self {
+        self.raw_body = Some(bytes);
         self
     }
 
@@ -152,6 +171,31 @@ impl WayclipClient {
         R: DeserializeOwned + Send + 'static,
     {
         let url = self.api_endpoint.join(path)?;
+        self.send(method, url).await
+    }
+
+    /// Method is a clone of the `send_call` method, but instead of joining the path to the
+    /// api_endpoint, we provide a fresh URL
+    pub async fn send_url<R>(
+        &mut self,
+        method: Method,
+        url: Url,
+    ) -> Result<WayclipResponse<R>, WayclipError>
+    where
+        R: DeserializeOwned + Send + 'static,
+    {
+        self.send(method, url).await
+    }
+
+    /// Method that actually sends stuff
+    async fn send<R>(
+        &mut self,
+        method: Method,
+        url: Url,
+    ) -> Result<WayclipResponse<R>, WayclipError>
+    where
+        R: DeserializeOwned + Send + 'static,
+    {
         let mut request = self.http_client.request(method, url);
 
         // Attach all params (if they exist)
@@ -164,10 +208,31 @@ impl WayclipClient {
         if let Some(ref body) = self.body {
             request = request.json(body);
         }
+        if let Some(bytes) = self.raw_body.take() {
+            request = request.body(bytes);
+        }
+        if let Some(ref headers) = self.headers {
+            let mut header_map = HeaderMap::new();
+            for (key, value) in headers {
+                header_map.insert(
+                    HeaderName::try_from(key.as_bytes())
+                        .map_err(|_| WayclipError::Validation("Invalid HeaderName".into()))?,
+                    HeaderValue::try_from(value.as_bytes())
+                        .map_err(|_| WayclipError::Validation("Invalid HeaderValue".into()))?,
+                );
+            }
+            request = request.headers(header_map);
+        }
 
         let response = request.send().await?;
         let headers = response.headers().get_all(SET_COOKIE);
         self.update_credentials(headers).await?;
+
+        self.tokens = None;
+        self.multipart_builder = None;
+        self.body = None;
+        self.headers = None;
+        self.raw_body = None;
 
         match response.status().is_success() {
             true => Ok(WayclipResponse::try_from_reqwest(response).await?),
@@ -221,85 +286,53 @@ impl TokensStore {
     }
 }
 
-/// Very useful if outer function wants to know exact return status
-/// Gives us the response code (which in this case will always be of 2xx type, as well as data)
-#[derive(Debug)]
-pub enum WayclipResponse<R: DeserializeOwned + Send + 'static> {
-    /// 200
-    Ok(R),
-    /// 201
-    Created(R),
-    /// 202
-    Accepted(Option<R>),
-    /// 203
-    NonAuthoritativeInformation(R),
-    /// 204
-    NoContent,
-    /// 205
-    ResetContent,
-    /// 206
-    PartialContent(R),
-    /// 207
-    MultiStatus(R),
-    /// 208
-    AlreadyReported(R),
-    /// 226
-    ImUsed(R),
+/// This struct will hold the custom response made by our client
+/// Useful since it will serialise the data and provides the received headers and status
+pub struct WayclipResponse<R: DeserializeOwned + Send + 'static> {
+    /// Status of the HTTP code (e.g. 404)
+    pub status: StatusCode,
+    /// Received headers. Useful for e.g. acquiring the "Location" for TUS upload
+    pub headers: HeaderMap,
+    /// The data itself. Nullable since not all requests give you something
+    pub data: Option<R>,
 }
 
 impl<R: DeserializeOwned + Send + 'static> WayclipResponse<R> {
     /// Parses the WayclipResponse, to extract the inner data
     pub fn into_inner(self) -> Result<R, WayclipError> {
-        match self {
-            WayclipResponse::Ok(r)
-            | WayclipResponse::Created(r)
-            | WayclipResponse::NonAuthoritativeInformation(r)
-            | WayclipResponse::PartialContent(r)
-            | WayclipResponse::MultiStatus(r)
-            | WayclipResponse::AlreadyReported(r)
-            | WayclipResponse::ImUsed(r)
-            | WayclipResponse::Accepted(Some(r)) => Ok(r),
-            WayclipResponse::Accepted(None) => Err(WayclipError::Api(
-                "Received 202 Accepted without body".into(),
-            )),
-            WayclipResponse::NoContent => Err(WayclipError::Api("Received 204 No Content".into())),
-            WayclipResponse::ResetContent => {
-                Err(WayclipError::Api("Received 205 Reset Content".into()))
-            }
+        if let Some(r) = self.data {
+            Ok(r)
+        } else {
+            Err(WayclipError::Api("No data received".into()))
         }
     }
 
     /// A method to construct the WayclipResponse from a `reqwest::Response`
     pub async fn try_from_reqwest(value: reqwest::Response) -> Result<Self, WayclipError> {
         let status = value.status();
+        let headers = value.headers().to_owned();
 
-        Ok(match status {
-            StatusCode::OK => Self::Ok(value.json::<R>().await?),
-            StatusCode::CREATED => Self::Created(value.json::<R>().await?),
-            StatusCode::ACCEPTED => {
-                let bytes = value.bytes().await?;
-                if bytes.is_empty() || bytes.iter().all(|b| b.is_ascii_whitespace()) {
-                    Self::Accepted(None)
-                } else {
-                    let body: R = serde_json::from_slice(&bytes)?;
-                    Self::Accepted(Some(body))
-                }
-            }
-            StatusCode::NO_CONTENT => Self::NoContent,
-            StatusCode::RESET_CONTENT => Self::ResetContent,
-            StatusCode::NON_AUTHORITATIVE_INFORMATION => {
-                Self::NonAuthoritativeInformation(value.json::<R>().await?)
-            }
-            StatusCode::PARTIAL_CONTENT => Self::PartialContent(value.json::<R>().await?),
-            StatusCode::MULTI_STATUS => Self::MultiStatus(value.json::<R>().await?),
-            StatusCode::ALREADY_REPORTED => Self::AlreadyReported(value.json::<R>().await?),
-            StatusCode::IM_USED => Self::ImUsed(value.json::<R>().await?),
-            _ => {
-                return Err(WayclipError::Api(
-                    "Status was not 2xx success, but error_for_status did not trigger an error"
-                        .into(),
-                ));
-            }
-        })
+        if status == StatusCode::NO_CONTENT {
+            Ok(Self {
+                status,
+                headers,
+                data: None,
+            })
+        } else {
+            let bytes = value.bytes().await?;
+            let is_empty = bytes.is_empty() || bytes.iter().all(|b| b.is_ascii_whitespace());
+
+            let data = if is_empty {
+                serde_json::from_str::<R>("null").ok()
+            } else {
+                Some(serde_json::from_slice::<R>(&bytes)?)
+            };
+
+            Ok(Self {
+                status,
+                headers,
+                data,
+            })
+        }
     }
 }

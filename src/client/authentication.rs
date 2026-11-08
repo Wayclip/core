@@ -4,7 +4,7 @@ use crate::models::auth::device::{
     GetAuthDeviceResponse, PostAuthDevicePollRequest, PostAuthDevicePollResponse,
 };
 use crate::models::error::WayclipError;
-use reqwest::Method;
+use reqwest::{Method, StatusCode};
 use std::time::Duration;
 use tokio::time::interval;
 
@@ -55,17 +55,25 @@ impl AuthenticationHttpClient {
 
             let response: WayclipResponse<PostAuthDevicePollResponse> = self
                 .client
-                .with_body(&body)
-                .await?
+                .with_body(&body)?
                 .send_call(Method::POST, "auth/device/poll")
                 .await?;
 
-            match response {
-                WayclipResponse::Ok(_) | WayclipResponse::Accepted(_)
-                    if let Some(tokens) = self.client.tokens.clone() =>
-                {
-                    return Ok(tokens);
+            match response.status {
+                StatusCode::OK => {
+                    // Read from our secure store instead of the tokens from the request
+                    // This is because we now clear the request fully to allow for multiple
+                    // responses
+                    // TODO: Maybe find a better way to avoiud this issue and still preserve tokens
+                    // merging? Perhaps clear everthing except for tokens since thats the only thing
+                    // that should be carried over?
+                    let secure_store = SecureStore;
+                    if let Some(tokens) = secure_store.get::<TokensStore>().await? {
+                        return Ok(tokens);
+                    }
+                    continue;
                 }
+                StatusCode::ACCEPTED => continue,
                 _ => continue,
             }
         }
