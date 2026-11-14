@@ -1,4 +1,5 @@
 use crate::models::error::WayclipError;
+#[cfg(feature = "daemon")]
 use gstreamer::ClockTime;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -9,7 +10,7 @@ use std::{
 
 const DEFAULT_LENGTH_SECONDS: u64 = 120;
 const DEFAULT_RESOLUTION: (u64, u64) = (1920, 1080);
-const DEFAULT_VIDEO_CODEC: VideoCodec = VideoCodec::H264(CodecType::NVIDIA);
+const DEFAULT_VIDEO_CODEC: VideoCodec = VideoCodec::H264(CodecType::Software);
 const DEFAULT_FPS: u64 = 30;
 const DEFAULT_BITRATE_KBPS: u32 = 15000;
 const DEFAULT_AUDIO_CODEC: AudioCodec = AudioCodec::Opus;
@@ -57,6 +58,8 @@ pub struct VideoSettings {
 impl VideoSettings {
     /// A small method to convert the stored value of length in seconds direcrly into a gstreamer
     /// ClockTime object
+    /// It is now also feature locked as I dont think this shall be ever used outside of daemon (?)
+    #[cfg(feature = "daemon")]
     pub fn get_max_duration(&self) -> ClockTime {
         ClockTime::from_seconds(self.length_seconds)
     }
@@ -68,7 +71,7 @@ impl Default for VideoSettings {
             length_seconds: DEFAULT_LENGTH_SECONDS,
             resolution: Resolution::default(),
             fps: Fps::default(),
-            codec: DEFAULT_VIDEO_CODEC,
+            codec: VideoCodec::default(),
             bitrate_kbps: Bitrate::default(),
         }
     }
@@ -268,6 +271,20 @@ pub enum VideoCodec {
     AV1(CodecType),
 }
 
+/// We now dynamically select VideoCodec based on feature and gstreamer packages that are available
+impl Default for VideoCodec {
+    fn default() -> Self {
+        #[cfg(feature = "daemon")]
+        {
+            Self::detect()
+        }
+        #[cfg(not(feature = "daemon"))]
+        {
+            DEFAULT_VIDEO_CODEC
+        }
+    }
+}
+
 impl FromStr for VideoCodec {
     type Err = WayclipError;
     fn from_str(s: &str) -> Result<Self, WayclipError> {
@@ -301,6 +318,25 @@ impl std::fmt::Display for VideoCodec {
 }
 
 impl VideoCodec {
+    /// Automatically detect the suitable VideoCodec
+    #[cfg(feature = "daemon")]
+    pub fn detect() -> Self {
+        if gstreamer::init().is_err() {
+            return DEFAULT_VIDEO_CODEC;
+        }
+
+        let codecs = [
+            Self::H264(CodecType::NVIDIA),
+            Self::H264(CodecType::VAAPI),
+            Self::H264(CodecType::Software),
+        ];
+
+        codecs
+            .into_iter()
+            .find(|codec| gstreamer::ElementFactory::find(codec.get_encoder().as_ref()).is_some())
+            .unwrap_or(DEFAULT_VIDEO_CODEC)
+    }
+
     /// Get the gstreamer parser element
     pub fn get_parser(&self) -> Cow<'static, str> {
         match self {
