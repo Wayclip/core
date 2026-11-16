@@ -98,7 +98,7 @@ impl UserSettings {
             let output = read_to_string(&file)?;
 
             let from = serde_json::from_str::<Ver>(&output)
-                .map_err(|e| WayclipError::Config(format!("Config file corrupted: {e}").into()))?
+                .map_err(|e| WayclipError::Fatal(format!("Config file corrupted: {e}").into()))?
                 .v;
 
             let to = Version::parse(VERSION)?;

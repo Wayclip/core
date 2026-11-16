@@ -90,11 +90,11 @@ impl PipewireManager {
 
         std::thread::spawn(move || {
             let run_loop = || -> Result<(), WayclipError> {
-                let mainloop = MainLoopRc::new(None)
-                    .map_err(|e| WayclipError::Pipewire(e.to_string().into()))?;
+                let mainloop =
+                    MainLoopRc::new(None).map_err(|e| WayclipError::Fatal(e.to_string().into()))?;
 
                 let context = ContextRc::new(&mainloop, None)
-                    .map_err(|e| WayclipError::Pipewire(e.to_string().into()))?;
+                    .map_err(|e| WayclipError::Fatal(e.to_string().into()))?;
 
                 let mut connection_attempts = 0;
                 let core = loop {
@@ -111,7 +111,7 @@ impl PipewireManager {
                             std::thread::sleep(RETRY_INTERVAL);
                         }
                         Err(error) => {
-                            return Err(WayclipError::Pipewire(
+                            return Err(WayclipError::Fatal(
                                 format!(
                                     "Failed to connect to PipeWire after {} attempts: {}",
                                     connection_attempts, error
@@ -124,7 +124,7 @@ impl PipewireManager {
 
                 let registry = core
                     .get_registry_rc()
-                    .map_err(|e| WayclipError::Pipewire(e.to_string().into()))?;
+                    .map_err(|e| WayclipError::Fatal(e.to_string().into()))?;
 
                 let listeners: Rc<RefCell<Vec<Box<dyn Any>>>> = Rc::new(RefCell::new(Vec::new()));
                 let listeners_weak = Rc::downgrade(&listeners);
@@ -336,7 +336,7 @@ impl PipewireManager {
 
                 let seq = core
                     .sync(0)
-                    .map_err(|e| WayclipError::Pipewire(e.to_string().into()))?;
+                    .map_err(|e| WayclipError::Fatal(e.to_string().into()))?;
                 pending_seq.set(Some(seq));
 
                 mainloop.run();
@@ -349,7 +349,7 @@ impl PipewireManager {
         });
 
         init_receiver.recv_timeout(INIT_TIMEOUT).map_err(|_| {
-            WayclipError::Pipewire("PipeWire did not finish initial sync in time".into())
+            WayclipError::Fatal("PipeWire did not finish initial sync in time".into())
         })??;
 
         Ok(Self { state_receiver })

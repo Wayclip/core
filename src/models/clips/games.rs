@@ -256,7 +256,7 @@ impl GameRegistry {
         }
 
         if !resp.status().is_success() {
-            return Err(WayclipError::Api(
+            return Err(WayclipError::Error(
                 format!("Failed to download games: HTTP {}", resp.status()).into(),
             ));
         }

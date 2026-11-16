@@ -15,58 +15,13 @@ use zbus;
 #[derive(Error, Debug)]
 pub enum WayclipError {
     // Daemon types
-    /// An ambiguous 'ring' error
-    #[error("Ring error: {0}")]
-    Ring(Cow<'static, str>),
-
-    /// An ambiguous 'remux' error
-    #[error("Remux error: {0}")]
-    Remux(Cow<'static, str>),
-
-    /// An ambiguous 'tray' error
-    #[error("Tray error: {0}")]
-    Tray(Cow<'static, str>),
-
-    /// An ambiguous 'pipewire' error
-    #[error("Pipewire error: {0}")]
-    Pipewire(Cow<'static, str>),
-
-    /// An ambiguous 'discovery' error
-    #[error("Discovery error: {0}")]
-    Discovery(Cow<'static, str>),
-
-    /// An ambiguous 'audio' error
-    #[error("Audio error: {0}")]
-    Audio(Cow<'static, str>),
-
-    /// An ambiguous 'screencast' error
-    #[error("Screencast error: {0}")]
-    Screencast(Cow<'static, str>),
-
-    /// An ambiguous 'video' error
-    #[error("Video error: {0}")]
-    Video(Cow<'static, str>),
-
-    /// An ambiguous 'watcher' error
-    #[error("Video error: {0}")]
-    Watcher(Cow<'static, str>),
+    /// An ambiguous error
+    #[error("Error: {0}")]
+    Error(Cow<'static, str>),
 
     /// An ambiguous 'fatal' error
     #[error("Fatal error: {0}")]
     Fatal(Cow<'static, str>),
-
-    // CLI errors
-    /// A general 'CLI' error
-    #[error("CLI error: {0}")]
-    CLI(Cow<'static, str>),
-
-    /// A general 'config' error
-    #[error("Config error: {0}")]
-    Config(Cow<'static, str>),
-
-    /// A general 'API' error
-    #[error("API error: {0}")]
-    Api(Cow<'static, str>),
 
     /// A general 'Validation' error
     #[error("Validation error: {0}")]

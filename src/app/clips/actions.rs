@@ -15,10 +15,10 @@ pub enum MixedClipActions {
     /// `CopyPath` action uses the os clipboard to copy the full path of the clip.
     #[strum(to_string = "Copy Path")]
     CopyPath,
-    /// `OpenPath` action uses the native default application to open the the path of where clip is
+    /// `OpenDir` action uses the native default application to open the the parent directory of where clip is
     /// stored
-    #[strum(to_string = "Open Path")]
-    OpenPath,
+    #[strum(to_string = "Open Directory Path")]
+    OpenDir,
     /// `Upload` action uploads the current clip to the Wayclip API. This will only work for Local
     /// clips and if the API is enabled in settings.
     Upload,
@@ -73,7 +73,7 @@ impl MixedClipActions {
             MixedClipActions::ChangeGame,
             MixedClipActions::CopyPath,
             MixedClipActions::CopyName,
-            MixedClipActions::OpenPath,
+            MixedClipActions::OpenDir,
         ]
     }
 

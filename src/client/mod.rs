@@ -112,7 +112,7 @@ impl WayclipClient {
         let tokens = secure_store
             .get::<TokensStore>()
             .await?
-            .ok_or_else(|| WayclipError::CLI("No tokens stored".into()))?;
+            .ok_or_else(|| WayclipError::Fatal("No tokens stored".into()))?;
 
         self.tokens = Some(tokens);
         Ok(self)
@@ -240,7 +240,7 @@ impl WayclipClient {
                 self.clear_credentials().await?;
                 Err(WayclipError::Validation("Session expired".into()))
             }
-            false => Err(WayclipError::Api(
+            false => Err(WayclipError::Error(
                 format!(
                     "Server error: {:?}",
                     response
@@ -303,7 +303,7 @@ impl<R: DeserializeOwned + Send + 'static> WayclipResponse<R> {
         if let Some(r) = self.data {
             Ok(r)
         } else {
-            Err(WayclipError::Api("No data received".into()))
+            Err(WayclipError::Error("No data received".into()))
         }
     }
 

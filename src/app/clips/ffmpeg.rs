@@ -83,11 +83,11 @@ impl Ffmpeg {
 
         let output = tokio::time::timeout(Duration::from_secs(60), cmd.output())
             .await
-            .map_err(|_| WayclipError::CLI("FFmpeg trim timed out".into()))?
-            .map_err(|e| WayclipError::CLI(format!("Failed to run FFmpeg: {e}").into()))?;
+            .map_err(|_| WayclipError::Error("FFmpeg trim timed out".into()))?
+            .map_err(|e| WayclipError::Error(format!("Failed to run FFmpeg: {e}").into()))?;
 
         if !output.status.success() {
-            return Err(WayclipError::CLI(
+            return Err(WayclipError::Fatal(
                 format!(
                     "FFmpeg trim failed: {}",
                     String::from_utf8_lossy(&output.stderr)
@@ -160,7 +160,7 @@ impl PreviewGenerator for FfmpegPreviewGenerator {
         }
 
         if !video_path.exists() {
-            return Err(WayclipError::Remux(
+            return Err(WayclipError::Fatal(
                 "Input video file does not exist".into(),
             ));
         }
@@ -184,11 +184,11 @@ impl PreviewGenerator for FfmpegPreviewGenerator {
             .arg("-an")
             .arg(preview_path)
             .output()
-            .map_err(|e| WayclipError::Remux(format!("Failed to execute ffmpeg: {e}").into()))?;
+            .map_err(|e| WayclipError::Fatal(format!("Failed to execute ffmpeg: {e}").into()))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(WayclipError::Remux(
+            return Err(WayclipError::Fatal(
                 format!("FFmpeg failed to generate preview: {stderr}").into(),
             ));
         }

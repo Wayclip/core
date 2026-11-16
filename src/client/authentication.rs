@@ -42,7 +42,7 @@ impl AuthenticationHttpClient {
         loop {
             let now = chrono::Utc::now();
             if now.timestamp() - start.timestamp() > POLL_DATA_TIMEOUT_S {
-                return Err(WayclipError::Api(
+                return Err(WayclipError::Error(
                     format!("Timeout of {POLL_DATA_TIMEOUT_S}s reached").into(),
                 ));
             }
