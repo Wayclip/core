@@ -1,0 +1,20 @@
+[Unit]
+Description=Wayclip Daemon
+Documentation=https://github.com/Wayclip/daemon
+After=graphical-session.target xdg-desktop-portal.service pipewire.service
+Wants=xdg-desktop-portal.service
+PartOf=graphical-session.target
+
+[Service]
+Type=notify
+ExecStart=wayclip-daemon
+Restart=on-failure
+RestartSec=5s
+PassEnvironment=WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_SESSION_DESKTOP DISPLAY XDG_RUNTIME_DIR HYPRLAND_INSTANCE_SIGNATURE SWAYSOCK
+Environment=GLOBAL_HOTKEY_APP_ID=com.wayclip.daemon
+Environment=RUST_LOG=warn,wayclip_daemon=info
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
